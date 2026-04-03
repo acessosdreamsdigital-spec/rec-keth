@@ -4,8 +4,17 @@ Core recovery logic.
 Responsibilities:
 - Normalize and upsert contacts
 - Deduplicate recovery sessions (one active session per contact + template_prefix)
-- Create sessions and schedule 3 messages (immediate / +24h / +48h)
+- Create sessions and schedule 3 messages
 - Handle purchase approval: mark sessions as converted, cancel pending messages
+
+Message scheduling:
+  Default (abandoned_cart, pix, payment_refused):
+    msg 1 — immediate, msg 2 — +24h, msg 3 — +48h
+
+  Boleto (billet_created / bank_slip_generated):
+    msg 1 — +24h, msg 2 — +48h, msg 3 — +72h
+    Rationale: boleto is valid for ~24h so we wait for it to expire
+    before starting the recovery sequence.
 """
 
 import logging
@@ -27,12 +36,22 @@ PRODUCT_TEMPLATE_MAP: list[tuple[str, str]] = [
     ("meu primeiro infoproduto", "rec_mpi"),
 ]
 
-# Offsets from session creation for each message
-MESSAGE_OFFSETS = [
-    timedelta(0),         # msg 1 — immediate
-    timedelta(hours=24),  # msg 2 — 24 h after
-    timedelta(hours=48),  # msg 3 — 48 h after
+# Default offsets: immediate → +24h → +48h
+DEFAULT_OFFSETS = [
+    timedelta(0),
+    timedelta(hours=24),
+    timedelta(hours=48),
 ]
+
+# Boleto offsets: wait 24h for boleto to expire, then +48h → +72h
+BOLETO_OFFSETS = [
+    timedelta(hours=24),
+    timedelta(hours=48),
+    timedelta(hours=72),
+]
+
+# Platform event types that represent boleto generation
+BOLETO_EVENT_TYPES = {"billet_created", "bank_slip_generated"}
 
 
 def resolve_template_prefix(product_name: str) -> Optional[str]:
@@ -117,7 +136,11 @@ async def _create_session(
 
 
 async def _schedule_messages(
-    session_id: str, contact_id: str, phone: str, template_prefix: str
+    session_id: str,
+    contact_id: str,
+    phone: str,
+    template_prefix: str,
+    offsets: list,
 ) -> None:
     db = await get_supabase()
     now = datetime.now(timezone.utc)
@@ -131,7 +154,7 @@ async def _schedule_messages(
             "scheduled_for": (now + offset).isoformat(),
             "status": "pending",
         }
-        for i, offset in enumerate(MESSAGE_OFFSETS, start=1)
+        for i, offset in enumerate(offsets, start=1)
     ]
     await db.table("scheduled_messages").insert(rows).execute()
 
@@ -188,11 +211,13 @@ async def handle_recovery_event(
         raw_payload=raw_payload,
     )
 
-    await _schedule_messages(session["id"], contact_id, phone, template_prefix)
+    offsets = BOLETO_OFFSETS if platform_event_type in BOLETO_EVENT_TYPES else DEFAULT_OFFSETS
+    await _schedule_messages(session["id"], contact_id, phone, template_prefix, offsets)
 
     logger.info(
         f"Recovery session created: id={session['id']} "
-        f"platform={platform} product={product_name} phone={phone}"
+        f"platform={platform} event={platform_event_type} product={product_name} phone={phone} "
+        f"schedule={'boleto' if offsets is BOLETO_OFFSETS else 'default'}"
     )
     return {"status": "created", "session_id": session["id"]}
 
