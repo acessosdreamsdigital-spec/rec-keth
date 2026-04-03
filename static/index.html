@@ -19,6 +19,36 @@
   .custom-scrollbar::-webkit-scrollbar { width: 4px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 10px; }
+  /* Tooltips */
+  .tip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 15px; height: 15px; border-radius: 50%;
+    background: #e2e8f0; color: #94a3b8;
+    font-size: 9px; font-weight: 800; cursor: help;
+    position: relative; flex-shrink: 0; vertical-align: middle;
+    margin-left: 5px; transition: background .15s;
+  }
+  .tip:hover { background: #cbd5e1; color: #475569; }
+  .tip::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 8px); left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b; color: #f1f5f9;
+    padding: 8px 12px; border-radius: 10px;
+    font-size: 12px; font-weight: 400; line-height: 1.6;
+    white-space: normal; width: 220px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    pointer-events: none; z-index: 999;
+    opacity: 0; transition: opacity .15s;
+  }
+  .tip::before {
+    content: '';
+    position: absolute; bottom: calc(100% + 2px); left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: #1e293b;
+    opacity: 0; transition: opacity .15s; z-index: 999;
+  }
+  .tip:hover::after, .tip:hover::before { opacity: 1; }
   .input-filter {
     background: #f1f5f9;
     border: none;
@@ -89,8 +119,8 @@
       <span class="material-symbols-outlined text-white text-[20px]" style="font-variation-settings:'FILL' 1;">mark_unread_chat_alt</span>
     </div>
     <div>
-      <h1 class="text-xl font-black tracking-tighter text-slate-900 leading-none">Recovery Pro</h1>
-      <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400 mt-1">Kiwify & Assiny</p>
+      <h1 class="text-xl font-black tracking-tighter text-slate-900 leading-none">The Differs</h1>
+      <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400 mt-1">Recovery Dashboard</p>
     </div>
   </div>
   <nav class="flex-1 space-y-1">
@@ -164,7 +194,7 @@
   <div class="flex justify-between items-end">
     <div>
       <h3 class="text-4xl font-black tracking-tight text-slate-900 mb-1">Visão Geral</h3>
-      <p class="text-slate-500 font-medium text-sm">Rastreamento de recuperação de ponta a ponta · Kiwify & Assiny</p>
+      <p class="text-slate-500 font-medium text-sm">Rastreamento de recuperação de ponta a ponta · The Differs Company</p>
     </div>
     <div class="flex gap-3">
       <input type="date" id="start_date" onchange="applyFilters()" class="input-filter" style="border-radius:9999px;"/>
@@ -189,7 +219,7 @@
     <div class="col-span-12 lg:col-span-8 glass-panel p-8 rounded-lg">
       <div class="flex justify-between items-center mb-8">
         <div>
-          <h5 class="text-lg font-black text-slate-900">Sessões & Conversões</h5>
+          <h5 class="text-lg font-black text-slate-900">Sessões & Conversões <span class="tip" data-tip="Evolução diária de novas sessões de recuperação abertas vs. compras aprovadas no período filtrado.">?</span></h5>
           <p class="text-slate-500 text-sm font-medium mt-0.5">Evolução diária no período selecionado</p>
         </div>
         <div class="flex gap-4">
@@ -224,14 +254,14 @@
   <div class="grid grid-cols-12 gap-6">
     <div class="col-span-12 lg:col-span-7 glass-panel p-8 rounded-lg">
       <div class="mb-6">
-        <h5 class="text-lg font-black text-slate-900">Performance por Produto</h5>
+        <h5 class="text-lg font-black text-slate-900">Performance por Produto <span class="tip" data-tip="Compara o total de sessões abertas vs. convertidas para cada produto. Mostra quais produtos têm maior taxa de recuperação.">?</span></h5>
         <p class="text-slate-500 text-sm font-medium mt-0.5">Total de sessões vs. convertidas</p>
       </div>
       <div style="height:200px;"><canvas id="chartProducts"></canvas></div>
     </div>
     <div class="col-span-12 lg:col-span-5 glass-panel p-8 rounded-lg">
       <div class="mb-6">
-        <h5 class="text-lg font-black text-slate-900">Funil de Conversão</h5>
+        <h5 class="text-lg font-black text-slate-900">Funil de Conversão <span class="tip" data-tip="Mostra após qual mensagem da sequência (1ª, 2ª ou 3ª) o usuário efetuou a compra. Indica qual toque é mais decisivo.">?</span></h5>
         <p class="text-slate-500 text-sm font-medium mt-0.5">Após qual mensagem a compra foi feita</p>
       </div>
       <div style="height:200px;"><canvas id="chartFunnel"></canvas></div>
@@ -253,9 +283,9 @@
             <th>Usuário</th>
             <th>Produto</th>
             <th>Plataforma</th>
-            <th>Evento</th>
-            <th>Jornada</th>
-            <th>Status</th>
+            <th>Evento <span class="tip" data-tip="Tipo de evento que originou esta sessão: carrinho abandonado, pagamento aguardando ou recusado.">?</span></th>
+            <th>Jornada <span class="tip" data-tip="Cada bolinha representa uma mensagem enviada. Verde = mensagem que converteu; azul = enviada; cinza = não chegou a ser enviada.">?</span></th>
+            <th>Status <span class="tip" data-tip="Ativa: sequência em andamento. Convertida: compra realizada. Esgotada: 3 msgs enviadas sem conversão. Cancelada: sessão interrompida manualmente.">?</span></th>
             <th>Valor</th>
             <th>Criado em</th>
             <th>Convertido em</th>
@@ -277,7 +307,7 @@
 
   <footer class="pt-6 border-t border-slate-200 flex justify-between items-center text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">
     <div class="flex gap-8">
-      <span>Recovery Pro</span>
+      <span>The Differs Company</span>
       <span>Kiwify & Assiny</span>
     </div>
     <span id="footer-updated">–</span>
@@ -371,20 +401,21 @@ async function loadStats() {
     ? Math.round(d.recovered_cents / d.total_revenue_cents * 100)
     : 0;
   document.getElementById('kpi-cards').innerHTML = `
-    ${kpiCard('Sessões Abertas',   d.total_sessions,               'analytics',   '+'+d.active+' ativas',              rate,   'text-primary')}
-    ${kpiCard('Convertidas',       d.converted,                    'trending_up',  rate+'% de conversão',              rate,   'text-emerald-600')}
-    ${kpiCard('Receita Total',     fmtCurrency(d.total_revenue_cents), 'account_balance', d.messages_sent+' msgs enviadas', 100, 'text-slate-500')}
-    ${kpiCard('Receita Recuperada',fmtCurrency(d.recovered_cents), 'payments',    recPct+'% da receita total',         recPct, 'text-blue-600')}
+    ${kpiCard('Sessões Abertas',   d.total_sessions,               'analytics',   '+'+d.active+' ativas',              rate,   'text-primary',      'Total de sessões de recuperação iniciadas no período — inclui ativas, convertidas, esgotadas e canceladas.')}
+    ${kpiCard('Convertidas',       d.converted,                    'trending_up',  rate+'% de conversão',              rate,   'text-emerald-600',  'Sessões em que o contato realizou a compra após receber ao menos uma mensagem da sequência.')}
+    ${kpiCard('Receita Total',     fmtCurrency(d.total_revenue_cents), 'account_balance', d.messages_sent+' msgs enviadas', 100, 'text-slate-500', 'Soma do valor de todas as sessões do período, independente de status — representa o potencial de recuperação.')}
+    ${kpiCard('Receita Recuperada',fmtCurrency(d.recovered_cents), 'payments',    recPct+'% da receita total',         recPct, 'text-blue-600',     'Valor efetivamente recuperado — soma apenas das sessões com status convertida.')}
   `;
 }
 
-function kpiCard(label, value, icon, sub, barPct, subColor) {
+function kpiCard(label, value, icon, sub, barPct, subColor, tooltip) {
+  const tipEl = tooltip ? `<span class="tip" data-tip="${tooltip}">?</span>` : '';
   return `
     <div class="glass-panel p-8 rounded-lg relative overflow-hidden group">
       <div class="absolute top-0 right-0 p-6 text-slate-100 group-hover:text-slate-200 transition-colors">
         <span class="material-symbols-outlined text-6xl">${icon}</span>
       </div>
-      <p class="text-xs font-bold text-slate-400 tracking-[0.1em] mb-4 uppercase">${label}</p>
+      <p class="text-xs font-bold text-slate-400 tracking-[0.1em] mb-4 uppercase flex items-center gap-1">${label}${tipEl}</p>
       <div class="flex items-baseline gap-3">
         <h4 class="text-4xl font-black text-slate-900">${value}</h4>
         <span class="${subColor} text-xs font-bold">${sub}</span>
