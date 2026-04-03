@@ -77,6 +77,7 @@ async def get_stats(
     exhausted = sum(1 for s in sessions if s["status"] == "exhausted")
     cancelled = sum(1 for s in sessions if s["status"] == "cancelled")
     messages_sent = sum(s.get("messages_sent") or 0 for s in sessions)
+    total_revenue_cents = sum(s.get("amount_cents") or 0 for s in sessions)
     recovered_cents = sum(
         s.get("amount_cents") or 0 for s in sessions if s["status"] == "converted"
     )
@@ -89,6 +90,7 @@ async def get_stats(
         "cancelled": cancelled,
         "conversion_rate": round(converted / total * 100, 1) if total > 0 else 0.0,
         "messages_sent": messages_sent,
+        "total_revenue_cents": total_revenue_cents,
         "recovered_cents": recovered_cents,
     }
 

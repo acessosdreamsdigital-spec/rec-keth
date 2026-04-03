@@ -176,7 +176,7 @@
   </div>
 
   <!-- KPI Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="kpi-cards">
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6" id="kpi-cards">
     <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-24 bg-slate-100 rounded-lg"></div></div>
     <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-24 bg-slate-100 rounded-lg"></div></div>
     <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-24 bg-slate-100 rounded-lg"></div></div>
@@ -367,10 +367,14 @@ async function loadStats() {
   const d = await fetchJSON('/dashboard/stats?'+buildParams());
   if(!d) return;
   const rate = d.conversion_rate || 0;
+  const recPct = d.total_revenue_cents > 0
+    ? Math.round(d.recovered_cents / d.total_revenue_cents * 100)
+    : 0;
   document.getElementById('kpi-cards').innerHTML = `
-    ${kpiCard('Sessões Abertas', d.total_sessions, 'analytics', '+'+d.active+' ativas', rate, 'text-primary')}
-    ${kpiCard('Convertidas', d.converted, 'trending_up', rate+'% de conversão', rate, 'text-emerald-600')}
-    ${kpiCard('Receita Recuperada', fmtCurrency(d.recovered_cents), 'payments', d.messages_sent+' msgs enviadas', rate, 'text-blue-600')}
+    ${kpiCard('Sessões Abertas',   d.total_sessions,               'analytics',   '+'+d.active+' ativas',              rate,   'text-primary')}
+    ${kpiCard('Convertidas',       d.converted,                    'trending_up',  rate+'% de conversão',              rate,   'text-emerald-600')}
+    ${kpiCard('Receita Total',     fmtCurrency(d.total_revenue_cents), 'account_balance', d.messages_sent+' msgs enviadas', 100, 'text-slate-500')}
+    ${kpiCard('Receita Recuperada',fmtCurrency(d.recovered_cents), 'payments',    recPct+'% da receita total',         recPct, 'text-blue-600')}
   `;
 }
 
