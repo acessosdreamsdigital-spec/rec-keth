@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recovery Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --color-bg: #080d1a;
+      --color-card: #0f1629;
+      --color-border: #1e2d4a;
+      --color-hover: #162038;
+    }
+    body { background-color: var(--color-bg); font-family: 'Inter', system-ui, sans-serif; }
+    .card { background: var(--color-card); border: 1px solid var(--color-border); }
+    .card-hover:hover { background: var(--color-hover); transition: background 0.2s; }
+    .input-field {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-field:focus { border-color: #3b82f6; }
+    .input-field option { background: #0f1629; }
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+    }
+    .badge-converted  { background: rgba(16,185,129,.15); color: #34d399; }
+    .badge-active     { background: rgba(245,158,11,.15);  color: #fbbf24; }
+    .badge-exhausted  { background: rgba(148,163,184,.12); color: #94a3b8; }
+    .badge-cancelled  { background: rgba(239,68,68,.12);   color: #f87171; }
+    .badge-kiwify     { background: rgba(168,85,247,.15);  color: #c084fc; }
+    .badge-assiny     { background: rgba(59,130,246,.15);  color: #60a5fa; }
+    .badge-abandoned  { background: rgba(251,146,60,.15);  color: #fb923c; }
+    .badge-waiting    { background: rgba(250,204,21,.15);  color: #facc15; }
+    .badge-refused    { background: rgba(239,68,68,.15);   color: #f87171; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot-sent      { background: #10b981; }
+    .dot-pending   { background: #1e2d4a; border: 1px solid #334155; }
+    .dot-converted { background: #f59e0b; }
+    table { border-collapse: collapse; width: 100%; }
+    thead th {
+      background: rgba(30,45,74,.5);
+      color: #64748b; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--color-border);
+    }
+    tbody tr { border-bottom: 1px solid rgba(30,45,74,.5); transition: background .15s; }
+    tbody tr:hover { background: var(--color-hover); }
+    tbody td { padding: 12px 16px; font-size: 13px; color: #cbd5e1; vertical-align: middle; }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid rgba(59,130,246,.2);
+      border-top-color: #3b82f6; border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .chart-container { position: relative; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e2d4a; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-200">
+
+  <!-- ── Header ── -->
+  <header class="border-b" style="border-color: var(--color-border); background: rgba(8,13,26,.9); backdrop-filter: blur(12px); position: sticky; top:0; z-index:50;">
+    <div class="max-w-screen-2xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-lg font-bold text-white tracking-tight">Recovery Dashboard</h1>
+        <p class="text-xs text-slate-500 mt-0.5">Rastreamento de ponta a ponta · Kiwify & Assiny</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-500" id="last-updated">–</span>
+        <button onclick="loadDashboard()" class="text-xs px-3 py-1.5 rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 transition-colors">
+          ↺ Atualizar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-screen-2xl mx-auto px-6 py-6 space-y-6">
+
+    <!-- ── Filters ── -->
+    <div class="card rounded-xl p-4">
+      <div class="flex flex-wrap gap-3 items-end">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs text-slate-500 font-medium">Data início</label>
+          <input type="date" id="start_date" class="input-field" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs text-slate-500 font-medium">Data fim</label>
+          <input type="date" id="end_date" class="input-field" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs text-slate-500 font-medium">Produto</label>
+          <select id="product" class="input-field">
+            <option value="">Todos os produtos</option>
+            <option value="rec_combo_wow">Combo Wow</option>
+            <option value="rec_capcut_wow">CapCut Wow</option>
+            <option value="rec_conteudo_wow">Conteúdo Wow</option>
+            <option value="rec_mpi">Meu Primeiro Infoproduto</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs text-slate-500 font-medium">Plataforma</label>
+          <select id="platform" class="input-field">
+            <option value="">Todas</option>
+            <option value="kiwify">Kiwify</option>
+            <option value="assiny">Assiny</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs text-slate-500 font-medium">Status</label>
+          <select id="status" class="input-field">
+            <option value="">Todos</option>
+            <option value="active">Ativa</option>
+            <option value="converted">Convertida</option>
+            <option value="exhausted">Esgotada</option>
+            <option value="cancelled">Cancelada</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1 flex-1 min-w-[200px]">
+          <label class="text-xs text-slate-500 font-medium">Buscar por e-mail</label>
+          <input type="text" id="email" placeholder="cliente@email.com" class="input-field w-full" />
+        </div>
+        <button onclick="applyFilters()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
+          Aplicar filtros
+        </button>
+        <button onclick="clearFilters()" class="px-3 py-2 text-slate-400 hover:text-slate-300 text-sm transition-colors">
+          Limpar
+        </button>
+      </div>
+    </div>
+
+    <!-- ── KPI Cards ── -->
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4" id="kpi-cards">
+      <!-- rendered by JS -->
+    </div>
+
+    <!-- ── Charts Row ── -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+
+      <!-- Funnel -->
+      <div class="card rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-sm font-semibold text-white">Funil de Conversão</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Após qual mensagem a compra foi feita</p>
+          </div>
+        </div>
+        <div class="chart-container" style="height:220px;">
+          <canvas id="chartFunnel"></canvas>
+        </div>
+      </div>
+
+      <!-- Product Performance -->
+      <div class="card rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-sm font-semibold text-white">Performance por Produto</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Sessões vs. conversões</p>
+          </div>
+        </div>
+        <div class="chart-container" style="height:220px;">
+          <canvas id="chartProducts"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Daily Timeline ── -->
+    <div class="card rounded-xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-sm font-semibold text-white">Sessões ao longo do tempo</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Novas sessões abertas e conversões por dia</p>
+        </div>
+      </div>
+      <div class="chart-container" style="height:200px;">
+        <canvas id="chartDaily"></canvas>
+      </div>
+    </div>
+
+    <!-- ── Sessions Table ── -->
+    <div class="card rounded-xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b" style="border-color: var(--color-border);">
+        <div>
+          <h2 class="text-sm font-semibold text-white">Sessões de Recuperação</h2>
+          <p class="text-xs text-slate-500 mt-0.5" id="table-count">–</p>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table id="sessions-table">
+          <thead>
+            <tr>
+              <th>Usuário</th>
+              <th>Produto</th>
+              <th>Plataforma</th>
+              <th>Evento</th>
+              <th>Jornada</th>
+              <th>Status</th>
+              <th>Valor</th>
+              <th>Criado em</th>
+              <th>Convertido em</th>
+            </tr>
+          </thead>
+          <tbody id="sessions-tbody">
+            <tr><td colspan="9" class="text-center py-12 text-slate-500">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between px-5 py-3 border-t" style="border-color: var(--color-border);">
+        <span class="text-xs text-slate-500" id="pagination-info">–</span>
+        <div class="flex gap-2">
+          <button id="btn-prev" onclick="changePage(-1)" class="px-3 py-1.5 text-xs rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+            ← Anterior
+          </button>
+          <button id="btn-next" onclick="changePage(1)" class="px-3 py-1.5 text-xs rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+            Próxima →
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /max-w -->
+
+<script>
+// ── Constants ────────────────────────────────────────────────────────────────
+const PRODUCT_NAMES = {
+  rec_combo_wow:    'Combo Wow',
+  rec_capcut_wow:   'CapCut Wow',
+  rec_conteudo_wow: 'Conteúdo Wow',
+  rec_mpi:          'MPI',
+};
+
+const TRIGGER_LABELS = {
+  abandoned_cart:    'Carrinho Abandonado',
+  waiting_payment:   'Aguardando Pgto.',
+  payment_refused:   'Pgto. Recusado',
+};
+
+const STATUS_BADGE = {
+  active:    '<span class="badge badge-active">Ativa</span>',
+  converted: '<span class="badge badge-converted">Convertida</span>',
+  exhausted: '<span class="badge badge-exhausted">Esgotada</span>',
+  cancelled: '<span class="badge badge-cancelled">Cancelada</span>',
+};
+
+const PLATFORM_BADGE = {
+  kiwify: '<span class="badge badge-kiwify">Kiwify</span>',
+  assiny: '<span class="badge badge-assiny">Assiny</span>',
+};
+
+const TRIGGER_BADGE = {
+  abandoned_cart:  '<span class="badge badge-abandoned">Carrinho</span>',
+  waiting_payment: '<span class="badge badge-waiting">Aguardando</span>',
+  payment_refused: '<span class="badge badge-refused">Recusado</span>',
+};
+
+const CHART_COLORS = {
+  blue:    'rgba(59,130,246,0.85)',
+  green:   'rgba(16,185,129,0.85)',
+  amber:   'rgba(245,158,11,0.85)',
+  purple:  'rgba(168,85,247,0.85)',
+  gray:    'rgba(100,116,139,0.85)',
+  blueLine:   '#3b82f6',
+  greenLine:  '#10b981',
+};
+
+// ── State ────────────────────────────────────────────────────────────────────
+let currentPage = 1;
+const limit = 20;
+let totalPages = 1;
+let charts = {};
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  setDefaultDates();
+  loadDashboard();
+});
+
+function setDefaultDates() {
+  const today = new Date();
+  const ago30 = new Date(today);
+  ago30.setDate(ago30.getDate() - 30);
+  document.getElementById('end_date').value   = fmtDate(today);
+  document.getElementById('start_date').value = fmtDate(ago30);
+}
+
+function fmtDate(d) {
+  return d.toISOString().split('T')[0];
+}
+
+// ── Filters ──────────────────────────────────────────────────────────────────
+function getFilters() {
+  return {
+    start_date: document.getElementById('start_date').value,
+    end_date:   document.getElementById('end_date').value,
+    platform:   document.getElementById('platform').value,
+    product:    document.getElementById('product').value,
+    status:     document.getElementById('status').value,
+    email:      document.getElementById('email').value,
+  };
+}
+
+function buildParams(extra = {}) {
+  const f = { ...getFilters(), ...extra };
+  const p = new URLSearchParams();
+  Object.entries(f).forEach(([k, v]) => { if (v) p.append(k, v); });
+  return p.toString();
+}
+
+function applyFilters() {
+  currentPage = 1;
+  loadDashboard();
+}
+
+function clearFilters() {
+  document.getElementById('platform').value = '';
+  document.getElementById('product').value  = '';
+  document.getElementById('status').value   = '';
+  document.getElementById('email').value    = '';
+  setDefaultDates();
+  applyFilters();
+}
+
+function changePage(delta) {
+  const next = currentPage + delta;
+  if (next < 1 || next > totalPages) return;
+  currentPage = next;
+  loadSessions();
+}
+
+// ── Main load ────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  await Promise.all([
+    loadStats(),
+    loadFunnel(),
+    loadProductStats(),
+    loadDaily(),
+    loadSessions(),
+  ]);
+  document.getElementById('last-updated').textContent =
+    'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  const data = await fetchJSON('/dashboard/stats?' + buildParams());
+  renderKPIs(data);
+}
+
+function renderKPIs(d) {
+  const cards = [
+    { label: 'Total de Sessões',   value: d.total_sessions,    color: 'blue',   icon: '⚡' },
+    { label: 'Convertidas',        value: d.converted,         color: 'green',  icon: '✅' },
+    { label: 'Taxa de Conversão',  value: d.conversion_rate + '%', color: 'purple', icon: '📈' },
+    { label: 'Msgs Enviadas',      value: d.messages_sent,     color: 'blue',   icon: '💬' },
+    { label: 'Receita Recuperada', value: fmtCurrency(d.recovered_cents), color: 'green', icon: '💰' },
+    { label: 'Sessões Ativas',     value: d.active,            color: 'amber',  icon: '⏳' },
+  ];
+
+  const colorMap = {
+    blue:   { icon:'text-blue-400',   bar:'bg-blue-500',   num:'text-blue-300' },
+    green:  { icon:'text-emerald-400', bar:'bg-emerald-500', num:'text-emerald-300' },
+    purple: { icon:'text-violet-400', bar:'bg-violet-500', num:'text-violet-300' },
+    amber:  { icon:'text-amber-400',  bar:'bg-amber-500',  num:'text-amber-300' },
+  };
+
+  document.getElementById('kpi-cards').innerHTML = cards.map(c => {
+    const cl = colorMap[c.color];
+    return `
+      <div class="card rounded-xl p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-slate-500 font-medium leading-tight">${c.label}</span>
+          <span class="${cl.icon} text-lg">${c.icon}</span>
+        </div>
+        <span class="text-2xl font-bold ${cl.num} tracking-tight">${c.value}</span>
+      </div>`;
+  }).join('');
+}
+
+// ── Funnel ────────────────────────────────────────────────────────────────────
+async function loadFunnel() {
+  const data = await fetchJSON('/dashboard/funnel?' + buildParams());
+  renderFunnel(data);
+}
+
+function renderFunnel(data) {
+  const labels = data.map(d => `Mensagem ${d.message_number}`);
+  const values = data.map(d => d.converted);
+
+  if (charts.funnel) charts.funnel.destroy();
+  const ctx = document.getElementById('chartFunnel').getContext('2d');
+  charts.funnel = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Conversões',
+        data: values,
+        backgroundColor: [CHART_COLORS.blue, CHART_COLORS.green, CHART_COLORS.purple],
+        borderRadius: 6, borderSkipped: false,
+      }],
+    },
+    options: chartOptions({ horizontal: false, yLabel: 'Conversões', suggestedMax: Math.max(...values, 1) }),
+  });
+}
+
+// ── Product Stats ─────────────────────────────────────────────────────────────
+async function loadProductStats() {
+  const data = await fetchJSON('/dashboard/product-stats?' + buildParams());
+  renderProductStats(data);
+}
+
+function renderProductStats(data) {
+  const labels = data.map(d => PRODUCT_NAMES[d.template_prefix] || d.template_prefix);
+  const totals = data.map(d => d.total);
+  const converted = data.map(d => d.converted);
+
+  if (charts.products) charts.products.destroy();
+  const ctx = document.getElementById('chartProducts').getContext('2d');
+  charts.products = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total', data: totals, backgroundColor: CHART_COLORS.blue, borderRadius: 4, borderSkipped: false },
+        { label: 'Convertidas', data: converted, backgroundColor: CHART_COLORS.green, borderRadius: 4, borderSkipped: false },
+      ],
+    },
+    options: chartOptions({ yLabel: 'Sessões' }),
+  });
+}
+
+// ── Daily Chart ───────────────────────────────────────────────────────────────
+async function loadDaily() {
+  const data = await fetchJSON('/dashboard/daily?' + buildParams());
+  renderDaily(data);
+}
+
+function renderDaily(data) {
+  const labels    = data.map(d => fmtDayLabel(d.day));
+  const sessions  = data.map(d => d.sessions);
+  const converted = data.map(d => d.converted);
+
+  if (charts.daily) charts.daily.destroy();
+  const ctx = document.getElementById('chartDaily').getContext('2d');
+  charts.daily = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Sessões', data: sessions,
+          borderColor: CHART_COLORS.blueLine, backgroundColor: 'rgba(59,130,246,0.08)',
+          fill: true, tension: 0.4, pointRadius: 3, pointHoverRadius: 5,
+        },
+        {
+          label: 'Convertidas', data: converted,
+          borderColor: CHART_COLORS.greenLine, backgroundColor: 'rgba(16,185,129,0.08)',
+          fill: true, tension: 0.4, pointRadius: 3, pointHoverRadius: 5,
+        },
+      ],
+    },
+    options: chartOptions({ yLabel: '' }),
+  });
+}
+
+// ── Sessions Table ────────────────────────────────────────────────────────────
+async function loadSessions() {
+  const qs = buildParams({ page: currentPage, limit });
+  const data = await fetchJSON('/dashboard/sessions?' + qs);
+  renderTable(data);
+}
+
+function renderTable({ data, total, page, pages }) {
+  totalPages = pages;
+  document.getElementById('table-count').textContent =
+    `${total} sessão${total !== 1 ? 'ões' : ''} encontrada${total !== 1 ? 's' : ''}`;
+
+  const tbody = document.getElementById('sessions-tbody');
+
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-slate-500">Nenhuma sessão encontrada</td></tr>';
+  } else {
+    tbody.innerHTML = data.map(s => `
+      <tr>
+        <td>
+          <div class="flex flex-col gap-0.5">
+            <span class="text-slate-200 font-medium text-xs">${esc(s.full_name || '–')}</span>
+            <span class="text-slate-500 text-xs">${esc(s.email || '–')}</span>
+            <span class="text-slate-600 text-xs">${esc(s.phone || '–')}</span>
+          </div>
+        </td>
+        <td><span class="text-slate-300 text-xs font-medium">${PRODUCT_NAMES[s.template_prefix] || s.product_name}</span></td>
+        <td>${PLATFORM_BADGE[s.platform] || s.platform}</td>
+        <td>${TRIGGER_BADGE[s.trigger_event] || s.trigger_event}</td>
+        <td>${renderJourney(s.messages_sent, s.status)}</td>
+        <td>${STATUS_BADGE[s.status] || s.status}</td>
+        <td class="text-slate-300 text-xs font-mono">${s.amount_cents ? fmtCurrency(s.amount_cents) : '–'}</td>
+        <td class="text-slate-500 text-xs">${fmtDateTime(s.created_at)}</td>
+        <td class="text-xs">${s.converted_at ? '<span class="text-emerald-400">' + fmtDateTime(s.converted_at) + '</span>' : '<span class="text-slate-600">–</span>'}</td>
+      </tr>`).join('');
+  }
+
+  // Pagination
+  document.getElementById('pagination-info').textContent =
+    `Página ${page} de ${pages} · ${total} registros`;
+  document.getElementById('btn-prev').disabled = page <= 1;
+  document.getElementById('btn-next').disabled = page >= pages;
+}
+
+function renderJourney(msgSent, status) {
+  const total = 3;
+  let dots = '';
+  for (let i = 1; i <= total; i++) {
+    if (i <= msgSent) {
+      const cls = (status === 'converted' && i === msgSent) ? 'dot-converted' : 'dot-sent';
+      dots += `<span class="dot ${cls}" title="Mensagem ${i} enviada"></span>`;
+    } else {
+      dots += `<span class="dot dot-pending" title="Mensagem ${i} pendente"></span>`;
+    }
+  }
+  const icon = status === 'converted' ? ' <span title="Convertido">💰</span>' : '';
+  return `<div class="flex items-center gap-1.5">${dots}${icon}</div>`;
+}
+
+// ── Chart helper ──────────────────────────────────────────────────────────────
+function chartOptions({ horizontal = false, yLabel = '', suggestedMax } = {}) {
+  return {
+    indexAxis: horizontal ? 'y' : 'x',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: { color: '#64748b', font: { size: 11 }, boxWidth: 12, padding: 16 },
+      },
+      tooltip: {
+        backgroundColor: '#0f1629',
+        borderColor: '#1e2d4a',
+        borderWidth: 1,
+        titleColor: '#e2e8f0',
+        bodyColor: '#94a3b8',
+        padding: 10,
+        cornerRadius: 8,
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: 'rgba(30,45,74,.4)' },
+        ticks: { color: '#475569', font: { size: 11 } },
+      },
+      y: {
+        grid: { color: 'rgba(30,45,74,.4)' },
+        ticks: { color: '#475569', font: { size: 11 } },
+        title: yLabel ? { display: true, text: yLabel, color: '#475569', font: { size: 10 } } : undefined,
+        suggestedMax,
+      },
+    },
+  };
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+async function fetchJSON(url) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(r.statusText);
+    return await r.json();
+  } catch (e) {
+    console.error('Fetch error:', url, e);
+    return null;
+  }
+}
+
+function fmtCurrency(cents) {
+  if (!cents) return 'R$ 0';
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
+}
+
+function fmtDateTime(iso) {
+  if (!iso) return '–';
+  return new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function fmtDayLabel(day) {
+  if (!day) return '';
+  const [y, m, d] = day.split('-');
+  return `${d}/${m}`;
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

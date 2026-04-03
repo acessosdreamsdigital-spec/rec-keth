@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config import settings
-from app.routers import assiny, kiwify
+from app.routers import assiny, dashboard, kiwify
 from app.services.scheduler import run_scheduler
 
 logging.basicConfig(
@@ -36,6 +36,7 @@ app = FastAPI(
 
 app.include_router(kiwify.router)
 app.include_router(assiny.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/health", tags=["infra"])
