@@ -7,6 +7,7 @@ Event mapping:
   event == "abandoned_purchase"   → abandoned_cart    → recovery
   event == "pix_expired"          → waiting_payment   → recovery
   event == "bank_slip_generated"  → waiting_payment   → recovery
+  event == "refused"              → payment_refused   → recovery
   event == "completed_purchase"
     + transaction.status == "paid" → purchase confirmed → stop sequence
 """
@@ -25,6 +26,7 @@ _RECOVERY_EVENT_MAP = {
     "abandoned_purchase": "abandoned_cart",
     "pix_expired": "waiting_payment",
     "bank_slip_generated": "waiting_payment",
+    "refused": "payment_refused",
 }
 
 
