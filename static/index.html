@@ -1,305 +1,330 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html class="light" lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Recovery Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    :root {
-      --color-bg: #080d1a;
-      --color-card: #0f1629;
-      --color-border: #1e2d4a;
-      --color-hover: #162038;
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .glass-panel {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(32px);
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 4px 24px -1px rgba(0,0,0,0.03);
+  }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 10px; }
+  .input-filter {
+    background: #f1f5f9;
+    border: none;
+    border-radius: 9999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #111827;
+    outline: none;
+    transition: all .2s;
+  }
+  .input-filter:focus { box-shadow: 0 0 0 2px rgba(0,86,210,.25); }
+  .input-filter option { background: #fff; }
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; letter-spacing: .03em;
+  }
+  .badge-converted { background: #d1fae5; color: #065f46; }
+  .badge-active    { background: #dbeafe; color: #1e40af; }
+  .badge-exhausted { background: #f1f5f9; color: #64748b; }
+  .badge-cancelled { background: #fee2e2; color: #991b1b; }
+  .badge-kiwify    { background: #ede9fe; color: #5b21b6; }
+  .badge-assiny    { background: #dbeafe; color: #1d4ed8; }
+  .badge-abandoned { background: #ffedd5; color: #9a3412; }
+  .badge-waiting   { background: #fef9c3; color: #713f12; }
+  .badge-refused   { background: #fee2e2; color: #991b1b; }
+  table { border-collapse: collapse; width: 100%; }
+  thead th {
+    background: #f8fafc;
+    color: #94a3b8; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em;
+    padding: 12px 16px; text-align: left;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  tbody tr { border-bottom: 1px solid rgba(0,0,0,0.03); transition: background .15s; }
+  tbody tr:hover { background: rgba(0,86,210,0.02); }
+  tbody td { padding: 14px 16px; font-size: 13px; color: #374151; vertical-align: middle; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+</style>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#0056D2",
+          "on-primary": "#FFFFFF",
+          "surface": "#F9FAFB",
+          "on-surface": "#111827",
+          "surface-container": "#FFFFFF",
+          "surface-variant": "#F3F4F6",
+          "outline": "#E5E7EB",
+        },
+        borderRadius: { DEFAULT: "1rem", lg: "1.5rem", xl: "2rem", full: "9999px" },
+        fontFamily: { headline: ["Inter"], body: ["Inter"] }
+      }
     }
-    body { background-color: var(--color-bg); font-family: 'Inter', system-ui, sans-serif; }
-    .card { background: var(--color-card); border: 1px solid var(--color-border); }
-    .card-hover:hover { background: var(--color-hover); transition: background 0.2s; }
-    .input-field {
-      background: var(--color-card);
-      border: 1px solid var(--color-border);
-      color: #e2e8f0;
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .input-field:focus { border-color: #3b82f6; }
-    .input-field option { background: #0f1629; }
-    .badge {
-      display: inline-flex; align-items: center;
-      padding: 2px 10px; border-radius: 999px;
-      font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
-    }
-    .badge-converted  { background: rgba(16,185,129,.15); color: #34d399; }
-    .badge-active     { background: rgba(245,158,11,.15);  color: #fbbf24; }
-    .badge-exhausted  { background: rgba(148,163,184,.12); color: #94a3b8; }
-    .badge-cancelled  { background: rgba(239,68,68,.12);   color: #f87171; }
-    .badge-kiwify     { background: rgba(168,85,247,.15);  color: #c084fc; }
-    .badge-assiny     { background: rgba(59,130,246,.15);  color: #60a5fa; }
-    .badge-abandoned  { background: rgba(251,146,60,.15);  color: #fb923c; }
-    .badge-waiting    { background: rgba(250,204,21,.15);  color: #facc15; }
-    .badge-refused    { background: rgba(239,68,68,.15);   color: #f87171; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-    .dot-sent      { background: #10b981; }
-    .dot-pending   { background: #1e2d4a; border: 1px solid #334155; }
-    .dot-converted { background: #f59e0b; }
-    table { border-collapse: collapse; width: 100%; }
-    thead th {
-      background: rgba(30,45,74,.5);
-      color: #64748b; font-size: 11px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.06em;
-      padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--color-border);
-    }
-    tbody tr { border-bottom: 1px solid rgba(30,45,74,.5); transition: background .15s; }
-    tbody tr:hover { background: var(--color-hover); }
-    tbody td { padding: 12px 16px; font-size: 13px; color: #cbd5e1; vertical-align: middle; }
-    .spinner {
-      width: 32px; height: 32px; border: 3px solid rgba(59,130,246,.2);
-      border-top-color: #3b82f6; border-radius: 50%;
-      animation: spin .8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .chart-container { position: relative; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #1e2d4a; border-radius: 3px; }
-  </style>
+  }
+</script>
 </head>
-<body class="min-h-screen text-slate-200">
+<body class="bg-surface text-on-surface min-h-screen selection:bg-primary/10">
 
-  <!-- ── Header ── -->
-  <header class="border-b" style="border-color: var(--color-border); background: rgba(8,13,26,.9); backdrop-filter: blur(12px); position: sticky; top:0; z-index:50;">
-    <div class="max-w-screen-2xl mx-auto px-6 py-4 flex items-center justify-between">
-      <div>
-        <h1 class="text-lg font-bold text-white tracking-tight">Recovery Dashboard</h1>
-        <p class="text-xs text-slate-500 mt-0.5">Rastreamento de ponta a ponta · Kiwify & Assiny</p>
-      </div>
+<!-- ── Sidebar ── -->
+<aside class="fixed left-0 top-0 h-full flex flex-col p-6 z-50 bg-white/80 backdrop-blur-3xl w-72 border-r border-black/[0.04] font-['Inter'] tracking-tight font-semibold text-sm shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+  <div class="flex items-center gap-3 mb-12 px-2">
+    <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+      <span class="material-symbols-outlined text-white text-[20px]" style="font-variation-settings:'FILL' 1;">mark_unread_chat_alt</span>
+    </div>
+    <div>
+      <h1 class="text-xl font-black tracking-tighter text-slate-900 leading-none">Recovery Pro</h1>
+      <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400 mt-1">Kiwify & Assiny</p>
+    </div>
+  </div>
+  <nav class="flex-1 space-y-1">
+    <a class="flex items-center gap-4 p-4 rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/10" href="#">
+      <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'FILL' 1;">dashboard</span>
+      <span>Dashboard</span>
+    </a>
+    <a onclick="scrollToTable()" class="flex items-center gap-4 p-4 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 cursor-pointer transition-all">
+      <span class="material-symbols-outlined text-[20px]">table_rows</span>
+      <span>Sessões</span>
+    </a>
+    <a class="flex items-center gap-4 p-4 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 transition-all cursor-pointer">
+      <span class="material-symbols-outlined text-[20px]">inventory_2</span>
+      <span>Produtos</span>
+    </a>
+  </nav>
+  <div class="mt-auto space-y-3">
+    <div class="glass-panel rounded-xl p-4">
+      <p class="text-xs text-slate-500 font-medium mb-1">Scheduler</p>
       <div class="flex items-center gap-2">
-        <span class="text-xs text-slate-500" id="last-updated">–</span>
-        <button onclick="loadDashboard()" class="text-xs px-3 py-1.5 rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 transition-colors">
-          ↺ Atualizar
-        </button>
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-xs font-bold text-slate-700">Ativo — polling 30s</span>
       </div>
     </div>
-  </header>
+    <button onclick="loadDashboard()" class="w-full py-3.5 bg-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-95 transition-all shadow-lg shadow-primary/20 text-sm">
+      <span class="material-symbols-outlined text-[18px]">refresh</span>
+      <span>Atualizar dados</span>
+    </button>
+  </div>
+</aside>
 
-  <div class="max-w-screen-2xl mx-auto px-6 py-6 space-y-6">
-
-    <!-- ── Filters ── -->
-    <div class="card rounded-xl p-4">
-      <div class="flex flex-wrap gap-3 items-end">
-        <div class="flex flex-col gap-1">
-          <label class="text-xs text-slate-500 font-medium">Data início</label>
-          <input type="date" id="start_date" class="input-field" />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs text-slate-500 font-medium">Data fim</label>
-          <input type="date" id="end_date" class="input-field" />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs text-slate-500 font-medium">Produto</label>
-          <select id="product" class="input-field">
-            <option value="">Todos os produtos</option>
-            <option value="rec_combo_wow">Combo Wow</option>
-            <option value="rec_capcut_wow">CapCut Wow</option>
-            <option value="rec_conteudo_wow">Conteúdo Wow</option>
-            <option value="rec_mpi">Meu Primeiro Infoproduto</option>
-          </select>
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs text-slate-500 font-medium">Plataforma</label>
-          <select id="platform" class="input-field">
-            <option value="">Todas</option>
-            <option value="kiwify">Kiwify</option>
-            <option value="assiny">Assiny</option>
-          </select>
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs text-slate-500 font-medium">Status</label>
-          <select id="status" class="input-field">
-            <option value="">Todos</option>
-            <option value="active">Ativa</option>
-            <option value="converted">Convertida</option>
-            <option value="exhausted">Esgotada</option>
-            <option value="cancelled">Cancelada</option>
-          </select>
-        </div>
-        <div class="flex flex-col gap-1 flex-1 min-w-[200px]">
-          <label class="text-xs text-slate-500 font-medium">Buscar por e-mail</label>
-          <input type="text" id="email" placeholder="cliente@email.com" class="input-field w-full" />
-        </div>
-        <button onclick="applyFilters()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
-          Aplicar filtros
-        </button>
-        <button onclick="clearFilters()" class="px-3 py-2 text-slate-400 hover:text-slate-300 text-sm transition-colors">
-          Limpar
-        </button>
-      </div>
+<!-- ── Header ── -->
+<header class="fixed top-0 right-0 left-72 z-40 flex justify-between items-center px-10 h-20 bg-white/60 backdrop-blur-2xl border-b border-black/[0.04]">
+  <div class="flex items-center gap-6">
+    <h2 class="text-xl font-black text-slate-900 tracking-[-0.04em]">Dashboard</h2>
+    <div class="relative flex items-center group">
+      <span class="material-symbols-outlined absolute left-3.5 text-slate-400 text-[18px] group-focus-within:text-primary transition-colors">search</span>
+      <input id="email" onkeydown="if(event.key==='Enter') applyFilters()" class="bg-slate-100 border-none rounded-full pl-10 pr-5 py-2 w-72 text-sm focus:ring-1 focus:ring-primary/40 transition-all outline-none text-slate-900 placeholder:text-slate-400 font-medium" placeholder="Buscar por e-mail..." type="text"/>
     </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <select id="product" onchange="applyFilters()" class="input-filter">
+      <option value="">Todos os produtos</option>
+      <option value="rec_combo_wow">Combo Wow</option>
+      <option value="rec_capcut_wow">CapCut Wow</option>
+      <option value="rec_conteudo_wow">Conteúdo Wow</option>
+      <option value="rec_mpi">MPI</option>
+    </select>
+    <select id="platform" onchange="applyFilters()" class="input-filter">
+      <option value="">Todas plataformas</option>
+      <option value="kiwify">Kiwify</option>
+      <option value="assiny">Assiny</option>
+    </select>
+    <select id="status" onchange="applyFilters()" class="input-filter">
+      <option value="">Todos os status</option>
+      <option value="active">Ativa</option>
+      <option value="converted">Convertida</option>
+      <option value="exhausted">Esgotada</option>
+      <option value="cancelled">Cancelada</option>
+    </select>
+    <div class="h-6 w-px bg-slate-200"></div>
+    <span class="text-xs text-slate-400 font-medium" id="last-updated">–</span>
+  </div>
+</header>
 
-    <!-- ── KPI Cards ── -->
-    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4" id="kpi-cards">
-      <!-- rendered by JS -->
+<!-- ── Main ── -->
+<main class="pl-72 pt-20 min-h-screen">
+<div class="p-10 max-w-7xl mx-auto space-y-10">
+
+  <!-- Title + date filters -->
+  <div class="flex justify-between items-end">
+    <div>
+      <h3 class="text-4xl font-black tracking-tight text-slate-900 mb-1">Visão Geral</h3>
+      <p class="text-slate-500 font-medium text-sm">Rastreamento de recuperação de ponta a ponta · Kiwify & Assiny</p>
     </div>
+    <div class="flex gap-3">
+      <input type="date" id="start_date" onchange="applyFilters()" class="input-filter" style="border-radius:9999px;"/>
+      <input type="date" id="end_date" onchange="applyFilters()" class="input-filter" style="border-radius:9999px;"/>
+      <button onclick="clearFilters()" class="px-5 py-2.5 rounded-full border border-slate-200 bg-white text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-all text-slate-600">
+        <span class="material-symbols-outlined text-[16px]">filter_alt_off</span> Limpar
+      </button>
+    </div>
+  </div>
 
-    <!-- ── Charts Row ── -->
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+  <!-- KPI Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="kpi-cards">
+    <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-24 bg-slate-100 rounded-lg"></div></div>
+    <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-24 bg-slate-100 rounded-lg"></div></div>
+    <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-24 bg-slate-100 rounded-lg"></div></div>
+  </div>
 
-      <!-- Funnel -->
-      <div class="card rounded-xl p-5">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-sm font-semibold text-white">Funil de Conversão</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Após qual mensagem a compra foi feita</p>
+  <!-- Chart + Activity -->
+  <div class="grid grid-cols-12 gap-6 items-start">
+
+    <!-- Daily Chart -->
+    <div class="col-span-12 lg:col-span-8 glass-panel p-8 rounded-lg">
+      <div class="flex justify-between items-center mb-8">
+        <div>
+          <h5 class="text-lg font-black text-slate-900">Sessões & Conversões</h5>
+          <p class="text-slate-500 text-sm font-medium mt-0.5">Evolução diária no período selecionado</p>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-primary"></span>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sessões</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Convertidas</span>
           </div>
         </div>
-        <div class="chart-container" style="height:220px;">
-          <canvas id="chartFunnel"></canvas>
-        </div>
       </div>
-
-      <!-- Product Performance -->
-      <div class="card rounded-xl p-5">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-sm font-semibold text-white">Performance por Produto</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Sessões vs. conversões</p>
-          </div>
-        </div>
-        <div class="chart-container" style="height:220px;">
-          <canvas id="chartProducts"></canvas>
-        </div>
-      </div>
+      <div style="height:240px;"><canvas id="chartDaily"></canvas></div>
     </div>
 
-    <!-- ── Daily Timeline ── -->
-    <div class="card rounded-xl p-5">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h2 class="text-sm font-semibold text-white">Sessões ao longo do tempo</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Novas sessões abertas e conversões por dia</p>
-        </div>
+    <!-- Recent Sessions -->
+    <div class="col-span-12 lg:col-span-4 space-y-4">
+      <div class="flex justify-between items-center px-1">
+        <h5 class="text-lg font-black text-slate-900">Sessões Recentes</h5>
+        <button onclick="scrollToTable()" class="text-primary text-xs font-bold uppercase tracking-widest hover:underline">Ver todas</button>
       </div>
-      <div class="chart-container" style="height:200px;">
-        <canvas id="chartDaily"></canvas>
-      </div>
-    </div>
-
-    <!-- ── Sessions Table ── -->
-    <div class="card rounded-xl overflow-hidden">
-      <div class="flex items-center justify-between px-5 py-4 border-b" style="border-color: var(--color-border);">
-        <div>
-          <h2 class="text-sm font-semibold text-white">Sessões de Recuperação</h2>
-          <p class="text-xs text-slate-500 mt-0.5" id="table-count">–</p>
-        </div>
-      </div>
-
-      <div class="overflow-x-auto">
-        <table id="sessions-table">
-          <thead>
-            <tr>
-              <th>Usuário</th>
-              <th>Produto</th>
-              <th>Plataforma</th>
-              <th>Evento</th>
-              <th>Jornada</th>
-              <th>Status</th>
-              <th>Valor</th>
-              <th>Criado em</th>
-              <th>Convertido em</th>
-            </tr>
-          </thead>
-          <tbody id="sessions-tbody">
-            <tr><td colspan="9" class="text-center py-12 text-slate-500">Carregando...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Pagination -->
-      <div class="flex items-center justify-between px-5 py-3 border-t" style="border-color: var(--color-border);">
-        <span class="text-xs text-slate-500" id="pagination-info">–</span>
-        <div class="flex gap-2">
-          <button id="btn-prev" onclick="changePage(-1)" class="px-3 py-1.5 text-xs rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-            ← Anterior
-          </button>
-          <button id="btn-next" onclick="changePage(1)" class="px-3 py-1.5 text-xs rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-            Próxima →
-          </button>
-        </div>
+      <div id="recent-sessions" class="space-y-3 max-h-[360px] overflow-y-auto custom-scrollbar pr-1">
+        <div class="glass-panel p-4 rounded-lg animate-pulse"><div class="h-12 bg-slate-100 rounded"></div></div>
+        <div class="glass-panel p-4 rounded-lg animate-pulse"><div class="h-12 bg-slate-100 rounded"></div></div>
+        <div class="glass-panel p-4 rounded-lg animate-pulse"><div class="h-12 bg-slate-100 rounded"></div></div>
       </div>
     </div>
+  </div>
 
-  </div><!-- /max-w -->
+  <!-- Product Stats + Funnel -->
+  <div class="grid grid-cols-12 gap-6">
+    <div class="col-span-12 lg:col-span-7 glass-panel p-8 rounded-lg">
+      <div class="mb-6">
+        <h5 class="text-lg font-black text-slate-900">Performance por Produto</h5>
+        <p class="text-slate-500 text-sm font-medium mt-0.5">Total de sessões vs. convertidas</p>
+      </div>
+      <div style="height:200px;"><canvas id="chartProducts"></canvas></div>
+    </div>
+    <div class="col-span-12 lg:col-span-5 glass-panel p-8 rounded-lg">
+      <div class="mb-6">
+        <h5 class="text-lg font-black text-slate-900">Funil de Conversão</h5>
+        <p class="text-slate-500 text-sm font-medium mt-0.5">Após qual mensagem a compra foi feita</p>
+      </div>
+      <div style="height:200px;"><canvas id="chartFunnel"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Sessions Table -->
+  <div id="sessions-section" class="glass-panel rounded-lg overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-black/[0.04]">
+      <div>
+        <h5 class="text-lg font-black text-slate-900">Sessões de Recuperação</h5>
+        <p class="text-sm text-slate-500 font-medium mt-0.5" id="table-count">–</p>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table id="sessions-table">
+        <thead>
+          <tr>
+            <th>Usuário</th>
+            <th>Produto</th>
+            <th>Plataforma</th>
+            <th>Evento</th>
+            <th>Jornada</th>
+            <th>Status</th>
+            <th>Valor</th>
+            <th>Criado em</th>
+            <th>Convertido em</th>
+          </tr>
+        </thead>
+        <tbody id="sessions-tbody">
+          <tr><td colspan="9" class="text-center py-12 text-slate-400">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="flex items-center justify-between px-6 py-4 border-t border-black/[0.04]">
+      <span class="text-xs text-slate-400 font-medium" id="pagination-info">–</span>
+      <div class="flex gap-2">
+        <button id="btn-prev" onclick="changePage(-1)" class="px-4 py-2 text-xs font-bold rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all">← Anterior</button>
+        <button id="btn-next" onclick="changePage(1)"  class="px-4 py-2 text-xs font-bold rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all">Próxima →</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="pt-6 border-t border-slate-200 flex justify-between items-center text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">
+    <div class="flex gap-8">
+      <span>Recovery Pro</span>
+      <span>Kiwify & Assiny</span>
+    </div>
+    <span id="footer-updated">–</span>
+  </footer>
+
+</div>
+</main>
 
 <script>
 // ── Constants ────────────────────────────────────────────────────────────────
 const PRODUCT_NAMES = {
-  rec_combo_wow:    'Combo Wow',
-  rec_capcut_wow:   'CapCut Wow',
-  rec_conteudo_wow: 'Conteúdo Wow',
-  rec_mpi:          'MPI',
+  rec_combo_wow:'Combo Wow', rec_capcut_wow:'CapCut Wow',
+  rec_conteudo_wow:'Conteúdo Wow', rec_mpi:'MPI',
 };
-
-const TRIGGER_LABELS = {
-  abandoned_cart:    'Carrinho Abandonado',
-  waiting_payment:   'Aguardando Pgto.',
-  payment_refused:   'Pgto. Recusado',
-};
-
 const STATUS_BADGE = {
   active:    '<span class="badge badge-active">Ativa</span>',
   converted: '<span class="badge badge-converted">Convertida</span>',
   exhausted: '<span class="badge badge-exhausted">Esgotada</span>',
   cancelled: '<span class="badge badge-cancelled">Cancelada</span>',
 };
-
 const PLATFORM_BADGE = {
-  kiwify: '<span class="badge badge-kiwify">Kiwify</span>',
-  assiny: '<span class="badge badge-assiny">Assiny</span>',
+  kiwify:'<span class="badge badge-kiwify">Kiwify</span>',
+  assiny:'<span class="badge badge-assiny">Assiny</span>',
 };
-
 const TRIGGER_BADGE = {
-  abandoned_cart:  '<span class="badge badge-abandoned">Carrinho</span>',
-  waiting_payment: '<span class="badge badge-waiting">Aguardando</span>',
-  payment_refused: '<span class="badge badge-refused">Recusado</span>',
+  abandoned_cart: '<span class="badge badge-abandoned">Carrinho</span>',
+  waiting_payment:'<span class="badge badge-waiting">Aguardando</span>',
+  payment_refused:'<span class="badge badge-refused">Recusado</span>',
+};
+const STATUS_DOT_COLOR = {
+  converted:'bg-emerald-500', active:'bg-blue-500',
+  exhausted:'bg-slate-400', cancelled:'bg-red-400',
 };
 
-const CHART_COLORS = {
-  blue:    'rgba(59,130,246,0.85)',
-  green:   'rgba(16,185,129,0.85)',
-  amber:   'rgba(245,158,11,0.85)',
-  purple:  'rgba(168,85,247,0.85)',
-  gray:    'rgba(100,116,139,0.85)',
-  blueLine:   '#3b82f6',
-  greenLine:  '#10b981',
-};
-
-// ── State ────────────────────────────────────────────────────────────────────
-let currentPage = 1;
-const limit = 20;
-let totalPages = 1;
+let currentPage = 1, totalPages = 1;
 let charts = {};
 
 // ── Init ─────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  setDefaultDates();
-  loadDashboard();
-});
+document.addEventListener('DOMContentLoaded', () => { setDefaultDates(); loadDashboard(); });
 
 function setDefaultDates() {
-  const today = new Date();
-  const ago30 = new Date(today);
-  ago30.setDate(ago30.getDate() - 30);
-  document.getElementById('end_date').value   = fmtDate(today);
-  document.getElementById('start_date').value = fmtDate(ago30);
+  const t = new Date(), a = new Date(t); a.setDate(a.getDate()-30);
+  document.getElementById('end_date').value   = fmtDate(t);
+  document.getElementById('start_date').value = fmtDate(a);
 }
-
-function fmtDate(d) {
-  return d.toISOString().split('T')[0];
-}
+function fmtDate(d) { return d.toISOString().split('T')[0]; }
+function scrollToTable() { document.getElementById('sessions-section').scrollIntoView({behavior:'smooth'}); }
 
 // ── Filters ──────────────────────────────────────────────────────────────────
 function getFilters() {
@@ -312,298 +337,254 @@ function getFilters() {
     email:      document.getElementById('email').value,
   };
 }
-
-function buildParams(extra = {}) {
-  const f = { ...getFilters(), ...extra };
+function buildParams(extra={}) {
   const p = new URLSearchParams();
-  Object.entries(f).forEach(([k, v]) => { if (v) p.append(k, v); });
+  Object.entries({...getFilters(),...extra}).forEach(([k,v])=>{ if(v) p.append(k,v); });
   return p.toString();
 }
-
-function applyFilters() {
-  currentPage = 1;
-  loadDashboard();
-}
-
+function applyFilters() { currentPage=1; loadDashboard(); }
 function clearFilters() {
-  document.getElementById('platform').value = '';
-  document.getElementById('product').value  = '';
-  document.getElementById('status').value   = '';
-  document.getElementById('email').value    = '';
-  setDefaultDates();
-  applyFilters();
+  ['platform','product','status'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('email').value='';
+  setDefaultDates(); applyFilters();
+}
+function changePage(d) {
+  const n = currentPage+d;
+  if(n<1||n>totalPages) return;
+  currentPage=n; loadSessions();
 }
 
-function changePage(delta) {
-  const next = currentPage + delta;
-  if (next < 1 || next > totalPages) return;
-  currentPage = next;
-  loadSessions();
-}
-
-// ── Main load ────────────────────────────────────────────────────────────────
+// ── Main ─────────────────────────────────────────────────────────────────────
 async function loadDashboard() {
-  await Promise.all([
-    loadStats(),
-    loadFunnel(),
-    loadProductStats(),
-    loadDaily(),
-    loadSessions(),
-  ]);
-  document.getElementById('last-updated').textContent =
-    'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+  await Promise.all([loadStats(), loadFunnel(), loadProductStats(), loadDaily(), loadSessions()]);
+  const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('last-updated').textContent = 'Atualizado às ' + now;
+  document.getElementById('footer-updated').textContent = '© Recovery Pro · ' + now;
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 async function loadStats() {
-  const data = await fetchJSON('/dashboard/stats?' + buildParams());
-  renderKPIs(data);
+  const d = await fetchJSON('/dashboard/stats?'+buildParams());
+  if(!d) return;
+  const rate = d.conversion_rate || 0;
+  document.getElementById('kpi-cards').innerHTML = `
+    ${kpiCard('Sessões Abertas', d.total_sessions, 'analytics', '+'+d.active+' ativas', rate, 'text-primary')}
+    ${kpiCard('Convertidas', d.converted, 'trending_up', rate+'% de conversão', rate, 'text-emerald-600')}
+    ${kpiCard('Receita Recuperada', fmtCurrency(d.recovered_cents), 'payments', d.messages_sent+' msgs enviadas', rate, 'text-blue-600')}
+  `;
 }
 
-function renderKPIs(d) {
-  const cards = [
-    { label: 'Total de Sessões',   value: d.total_sessions,    color: 'blue',   icon: '⚡' },
-    { label: 'Convertidas',        value: d.converted,         color: 'green',  icon: '✅' },
-    { label: 'Taxa de Conversão',  value: d.conversion_rate + '%', color: 'purple', icon: '📈' },
-    { label: 'Msgs Enviadas',      value: d.messages_sent,     color: 'blue',   icon: '💬' },
-    { label: 'Receita Recuperada', value: fmtCurrency(d.recovered_cents), color: 'green', icon: '💰' },
-    { label: 'Sessões Ativas',     value: d.active,            color: 'amber',  icon: '⏳' },
-  ];
+function kpiCard(label, value, icon, sub, barPct, subColor) {
+  return `
+    <div class="glass-panel p-8 rounded-lg relative overflow-hidden group">
+      <div class="absolute top-0 right-0 p-6 text-slate-100 group-hover:text-slate-200 transition-colors">
+        <span class="material-symbols-outlined text-6xl">${icon}</span>
+      </div>
+      <p class="text-xs font-bold text-slate-400 tracking-[0.1em] mb-4 uppercase">${label}</p>
+      <div class="flex items-baseline gap-3">
+        <h4 class="text-4xl font-black text-slate-900">${value}</h4>
+        <span class="${subColor} text-xs font-bold">${sub}</span>
+      </div>
+      <div class="mt-6 w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+        <div class="h-full bg-primary rounded-full transition-all duration-700" style="width:${Math.min(100,barPct)}%"></div>
+      </div>
+    </div>`;
+}
 
-  const colorMap = {
-    blue:   { icon:'text-blue-400',   bar:'bg-blue-500',   num:'text-blue-300' },
-    green:  { icon:'text-emerald-400', bar:'bg-emerald-500', num:'text-emerald-300' },
-    purple: { icon:'text-violet-400', bar:'bg-violet-500', num:'text-violet-300' },
-    amber:  { icon:'text-amber-400',  bar:'bg-amber-500',  num:'text-amber-300' },
-  };
-
-  document.getElementById('kpi-cards').innerHTML = cards.map(c => {
-    const cl = colorMap[c.color];
+// ── Recent Sessions ───────────────────────────────────────────────────────────
+async function loadRecentSessions(sessions) {
+  const el = document.getElementById('recent-sessions');
+  if(!sessions || !sessions.length) {
+    el.innerHTML = '<p class="text-center text-slate-400 text-sm py-8">Nenhuma sessão encontrada</p>';
+    return;
+  }
+  el.innerHTML = sessions.slice(0,6).map(s => {
+    const initials = getInitials(s.full_name || s.email || '?');
+    const dotColor = STATUS_DOT_COLOR[s.status] || 'bg-slate-300';
+    const product  = PRODUCT_NAMES[s.template_prefix] || s.product_name;
+    const action   = s.status==='converted' ? 'converteu' : s.status==='active' ? 'em sequência' : s.status;
     return `
-      <div class="card rounded-xl p-4 flex flex-col gap-3">
-        <div class="flex items-center justify-between">
-          <span class="text-xs text-slate-500 font-medium leading-tight">${c.label}</span>
-          <span class="${cl.icon} text-lg">${c.icon}</span>
+      <div class="glass-panel p-4 rounded-xl flex items-center gap-4 hover:bg-white transition-all cursor-pointer">
+        <div class="relative flex-shrink-0">
+          <div class="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-sm">${initials}</div>
+          <div class="absolute -bottom-0.5 -right-0.5 w-4 h-4 ${dotColor} rounded-full border-2 border-white"></div>
         </div>
-        <span class="text-2xl font-bold ${cl.num} tracking-tight">${c.value}</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-slate-900 font-bold truncate">${esc(s.full_name||'–')} <span class="font-normal text-slate-500">${action}</span></p>
+          <p class="text-xs text-primary font-semibold truncate">${product}</p>
+        </div>
+        <span class="text-[10px] font-bold text-slate-400 flex-shrink-0">${timeAgo(s.created_at)}</span>
       </div>`;
   }).join('');
 }
 
-// ── Funnel ────────────────────────────────────────────────────────────────────
-async function loadFunnel() {
-  const data = await fetchJSON('/dashboard/funnel?' + buildParams());
-  renderFunnel(data);
-}
+// ── Daily Chart ───────────────────────────────────────────────────────────────
+async function loadDaily() {
+  const data = await fetchJSON('/dashboard/daily?'+buildParams());
+  if(!data) return;
+  const labels    = data.map(d=>fmtDayLabel(d.day));
+  const sessions  = data.map(d=>d.sessions);
+  const converted = data.map(d=>d.converted);
 
-function renderFunnel(data) {
-  const labels = data.map(d => `Mensagem ${d.message_number}`);
-  const values = data.map(d => d.converted);
-
-  if (charts.funnel) charts.funnel.destroy();
-  const ctx = document.getElementById('chartFunnel').getContext('2d');
-  charts.funnel = new Chart(ctx, {
-    type: 'bar',
-    data: {
+  if(charts.daily) charts.daily.destroy();
+  const ctx = document.getElementById('chartDaily').getContext('2d');
+  charts.daily = new Chart(ctx, {
+    type:'line',
+    data:{
       labels,
-      datasets: [{
-        label: 'Conversões',
-        data: values,
-        backgroundColor: [CHART_COLORS.blue, CHART_COLORS.green, CHART_COLORS.purple],
-        borderRadius: 6, borderSkipped: false,
-      }],
+      datasets:[
+        { label:'Sessões', data:sessions, borderColor:'#0056D2', backgroundColor:'rgba(0,86,210,0.06)', fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#0056D2', borderWidth:2 },
+        { label:'Convertidas', data:converted, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.06)', fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#10b981', borderWidth:2 },
+      ],
     },
-    options: chartOptions({ horizontal: false, yLabel: 'Conversões', suggestedMax: Math.max(...values, 1) }),
+    options: lightChartOptions(),
   });
 }
 
 // ── Product Stats ─────────────────────────────────────────────────────────────
 async function loadProductStats() {
-  const data = await fetchJSON('/dashboard/product-stats?' + buildParams());
-  renderProductStats(data);
-}
+  const data = await fetchJSON('/dashboard/product-stats?'+buildParams());
+  if(!data) return;
+  const labels    = data.map(d=>PRODUCT_NAMES[d.template_prefix]||d.template_prefix);
+  const totals    = data.map(d=>d.total);
+  const converted = data.map(d=>d.converted);
 
-function renderProductStats(data) {
-  const labels = data.map(d => PRODUCT_NAMES[d.template_prefix] || d.template_prefix);
-  const totals = data.map(d => d.total);
-  const converted = data.map(d => d.converted);
-
-  if (charts.products) charts.products.destroy();
+  if(charts.products) charts.products.destroy();
   const ctx = document.getElementById('chartProducts').getContext('2d');
   charts.products = new Chart(ctx, {
-    type: 'bar',
-    data: {
+    type:'bar',
+    data:{
       labels,
-      datasets: [
-        { label: 'Total', data: totals, backgroundColor: CHART_COLORS.blue, borderRadius: 4, borderSkipped: false },
-        { label: 'Convertidas', data: converted, backgroundColor: CHART_COLORS.green, borderRadius: 4, borderSkipped: false },
+      datasets:[
+        { label:'Total',data:totals,backgroundColor:'rgba(0,86,210,0.15)',borderColor:'rgba(0,86,210,0.4)',borderWidth:1,borderRadius:6,borderSkipped:false },
+        { label:'Convertidas',data:converted,backgroundColor:'rgba(16,185,129,0.7)',borderColor:'#10b981',borderWidth:1,borderRadius:6,borderSkipped:false },
       ],
     },
-    options: chartOptions({ yLabel: 'Sessões' }),
+    options: lightChartOptions(),
   });
 }
 
-// ── Daily Chart ───────────────────────────────────────────────────────────────
-async function loadDaily() {
-  const data = await fetchJSON('/dashboard/daily?' + buildParams());
-  renderDaily(data);
-}
+// ── Funnel ────────────────────────────────────────────────────────────────────
+async function loadFunnel() {
+  const data = await fetchJSON('/dashboard/funnel?'+buildParams());
+  if(!data) return;
+  const labels = data.map(d=>`Mensagem ${d.message_number}`);
+  const values = data.map(d=>d.converted);
 
-function renderDaily(data) {
-  const labels    = data.map(d => fmtDayLabel(d.day));
-  const sessions  = data.map(d => d.sessions);
-  const converted = data.map(d => d.converted);
-
-  if (charts.daily) charts.daily.destroy();
-  const ctx = document.getElementById('chartDaily').getContext('2d');
-  charts.daily = new Chart(ctx, {
-    type: 'line',
-    data: {
+  if(charts.funnel) charts.funnel.destroy();
+  const ctx = document.getElementById('chartFunnel').getContext('2d');
+  charts.funnel = new Chart(ctx, {
+    type:'bar',
+    data:{
       labels,
-      datasets: [
-        {
-          label: 'Sessões', data: sessions,
-          borderColor: CHART_COLORS.blueLine, backgroundColor: 'rgba(59,130,246,0.08)',
-          fill: true, tension: 0.4, pointRadius: 3, pointHoverRadius: 5,
-        },
-        {
-          label: 'Convertidas', data: converted,
-          borderColor: CHART_COLORS.greenLine, backgroundColor: 'rgba(16,185,129,0.08)',
-          fill: true, tension: 0.4, pointRadius: 3, pointHoverRadius: 5,
-        },
-      ],
+      datasets:[{
+        label:'Conversões', data:values,
+        backgroundColor:['rgba(0,86,210,0.8)','rgba(16,185,129,0.8)','rgba(99,102,241,0.8)'],
+        borderRadius:8, borderSkipped:false,
+      }],
     },
-    options: chartOptions({ yLabel: '' }),
+    options: lightChartOptions({ suggestedMax: Math.max(...values,1)+1 }),
   });
 }
 
-// ── Sessions Table ────────────────────────────────────────────────────────────
+// ── Table ─────────────────────────────────────────────────────────────────────
 async function loadSessions() {
-  const qs = buildParams({ page: currentPage, limit });
-  const data = await fetchJSON('/dashboard/sessions?' + qs);
+  const data = await fetchJSON('/dashboard/sessions?'+buildParams({page:currentPage,limit:20}));
+  if(!data) return;
+  await loadRecentSessions(data.data);
   renderTable(data);
 }
 
-function renderTable({ data, total, page, pages }) {
+function renderTable({data,total,page,pages}) {
   totalPages = pages;
-  document.getElementById('table-count').textContent =
-    `${total} sessão${total !== 1 ? 'ões' : ''} encontrada${total !== 1 ? 's' : ''}`;
-
+  document.getElementById('table-count').textContent = `${total} sessão${total!==1?'ões':''} encontrada${total!==1?'s':''}`;
   const tbody = document.getElementById('sessions-tbody');
 
-  if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-slate-500">Nenhuma sessão encontrada</td></tr>';
+  if(!data.length) {
+    tbody.innerHTML='<tr><td colspan="9" class="text-center py-12 text-slate-400">Nenhuma sessão encontrada</td></tr>';
   } else {
-    tbody.innerHTML = data.map(s => `
+    tbody.innerHTML = data.map(s=>`
       <tr>
         <td>
-          <div class="flex flex-col gap-0.5">
-            <span class="text-slate-200 font-medium text-xs">${esc(s.full_name || '–')}</span>
-            <span class="text-slate-500 text-xs">${esc(s.email || '–')}</span>
-            <span class="text-slate-600 text-xs">${esc(s.phone || '–')}</span>
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">${getInitials(s.full_name||s.email||'?')}</div>
+            <div>
+              <p class="font-semibold text-slate-800 text-xs">${esc(s.full_name||'–')}</p>
+              <p class="text-slate-400 text-xs">${esc(s.email||'–')}</p>
+            </div>
           </div>
         </td>
-        <td><span class="text-slate-300 text-xs font-medium">${PRODUCT_NAMES[s.template_prefix] || s.product_name}</span></td>
-        <td>${PLATFORM_BADGE[s.platform] || s.platform}</td>
-        <td>${TRIGGER_BADGE[s.trigger_event] || s.trigger_event}</td>
-        <td>${renderJourney(s.messages_sent, s.status)}</td>
-        <td>${STATUS_BADGE[s.status] || s.status}</td>
-        <td class="text-slate-300 text-xs font-mono">${s.amount_cents ? fmtCurrency(s.amount_cents) : '–'}</td>
-        <td class="text-slate-500 text-xs">${fmtDateTime(s.created_at)}</td>
-        <td class="text-xs">${s.converted_at ? '<span class="text-emerald-400">' + fmtDateTime(s.converted_at) + '</span>' : '<span class="text-slate-600">–</span>'}</td>
+        <td class="font-semibold text-slate-700 text-xs">${PRODUCT_NAMES[s.template_prefix]||s.product_name}</td>
+        <td>${PLATFORM_BADGE[s.platform]||s.platform}</td>
+        <td>${TRIGGER_BADGE[s.trigger_event]||s.trigger_event}</td>
+        <td>${renderJourney(s.messages_sent,s.status)}</td>
+        <td>${STATUS_BADGE[s.status]||s.status}</td>
+        <td class="font-mono text-xs font-semibold text-slate-700">${s.amount_cents?fmtCurrency(s.amount_cents):'–'}</td>
+        <td class="text-slate-400 text-xs">${fmtDateTime(s.created_at)}</td>
+        <td class="text-xs">${s.converted_at?'<span class="text-emerald-600 font-semibold">'+fmtDateTime(s.converted_at)+'</span>':'<span class="text-slate-300">–</span>'}</td>
       </tr>`).join('');
   }
 
-  // Pagination
-  document.getElementById('pagination-info').textContent =
-    `Página ${page} de ${pages} · ${total} registros`;
-  document.getElementById('btn-prev').disabled = page <= 1;
-  document.getElementById('btn-next').disabled = page >= pages;
+  document.getElementById('pagination-info').textContent=`Página ${page} de ${pages} · ${total} registros`;
+  document.getElementById('btn-prev').disabled = page<=1;
+  document.getElementById('btn-next').disabled = page>=pages;
 }
 
-function renderJourney(msgSent, status) {
-  const total = 3;
-  let dots = '';
-  for (let i = 1; i <= total; i++) {
-    if (i <= msgSent) {
-      const cls = (status === 'converted' && i === msgSent) ? 'dot-converted' : 'dot-sent';
-      dots += `<span class="dot ${cls}" title="Mensagem ${i} enviada"></span>`;
+function renderJourney(sent,status) {
+  let dots='';
+  for(let i=1;i<=3;i++) {
+    if(i<=sent) {
+      const color=(status==='converted'&&i===sent)?'bg-emerald-500':'bg-primary';
+      dots+=`<span class="dot ${color}"></span>`;
     } else {
-      dots += `<span class="dot dot-pending" title="Mensagem ${i} pendente"></span>`;
+      dots+=`<span class="dot bg-slate-200"></span>`;
     }
   }
-  const icon = status === 'converted' ? ' <span title="Convertido">💰</span>' : '';
+  const icon = status==='converted'?' <span class="text-xs">💰</span>':'';
   return `<div class="flex items-center gap-1.5">${dots}${icon}</div>`;
 }
 
 // ── Chart helper ──────────────────────────────────────────────────────────────
-function chartOptions({ horizontal = false, yLabel = '', suggestedMax } = {}) {
+function lightChartOptions({suggestedMax}={}) {
   return {
-    indexAxis: horizontal ? 'y' : 'x',
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        labels: { color: '#64748b', font: { size: 11 }, boxWidth: 12, padding: 16 },
-      },
-      tooltip: {
-        backgroundColor: '#0f1629',
-        borderColor: '#1e2d4a',
-        borderWidth: 1,
-        titleColor: '#e2e8f0',
-        bodyColor: '#94a3b8',
-        padding: 10,
-        cornerRadius: 8,
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ labels:{ color:'#94a3b8', font:{size:11,weight:'600'}, boxWidth:10, padding:16 } },
+      tooltip:{
+        backgroundColor:'#fff', borderColor:'rgba(0,0,0,0.08)', borderWidth:1,
+        titleColor:'#111827', bodyColor:'#64748b', padding:12, cornerRadius:10,
+        boxShadow:'0 4px 20px rgba(0,0,0,0.08)',
       },
     },
-    scales: {
-      x: {
-        grid: { color: 'rgba(30,45,74,.4)' },
-        ticks: { color: '#475569', font: { size: 11 } },
-      },
-      y: {
-        grid: { color: 'rgba(30,45,74,.4)' },
-        ticks: { color: '#475569', font: { size: 11 } },
-        title: yLabel ? { display: true, text: yLabel, color: '#475569', font: { size: 10 } } : undefined,
-        suggestedMax,
-      },
+    scales:{
+      x:{ grid:{color:'rgba(0,0,0,0.04)',drawBorder:false}, ticks:{color:'#94a3b8',font:{size:11}}, border:{display:false} },
+      y:{ grid:{color:'rgba(0,0,0,0.04)',drawBorder:false}, ticks:{color:'#94a3b8',font:{size:11}}, border:{display:false}, suggestedMax },
     },
   };
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
 async function fetchJSON(url) {
-  try {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(r.statusText);
-    return await r.json();
-  } catch (e) {
-    console.error('Fetch error:', url, e);
-    return null;
-  }
+  try { const r=await fetch(url); if(!r.ok) throw new Error(); return await r.json(); }
+  catch(e) { console.error('fetchJSON error:', url, e); return null; }
 }
-
-function fmtCurrency(cents) {
-  if (!cents) return 'R$ 0';
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
+function fmtCurrency(c) {
+  return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((c||0)/100);
 }
-
 function fmtDateTime(iso) {
-  if (!iso) return '–';
-  return new Date(iso).toLocaleString('pt-BR', {
-    day: '2-digit', month: '2-digit', year: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  });
+  if(!iso) return '–';
+  return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
 }
-
-function fmtDayLabel(day) {
-  if (!day) return '';
-  const [y, m, d] = day.split('-');
-  return `${d}/${m}`;
-}
-
-function esc(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function fmtDayLabel(d) { if(!d) return ''; const [,m,dd]=d.split('-'); return `${dd}/${m}`; }
+function getInitials(n) { return String(n).split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?'; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function timeAgo(iso) {
+  if(!iso) return '–';
+  const diff = (Date.now()-new Date(iso).getTime())/1000;
+  if(diff<60)   return Math.floor(diff)+'s atrás';
+  if(diff<3600) return Math.floor(diff/60)+'m atrás';
+  if(diff<86400)return Math.floor(diff/3600)+'h atrás';
+  return Math.floor(diff/86400)+'d atrás';
 }
 </script>
 </body>
