@@ -223,16 +223,17 @@ async def get_daily(
     sd = start_date or _default_start()
     ed = end_date or date.today()
 
-    query = db.table("recovery_sessions").select("created_at, status, amount_cents")
+    query = db.table("recovery_sessions").select("created_at, status, amount_cents, messages_sent")
     query = _apply_base_filters(query, sd, ed, platform, product)
     result = await query.execute()
 
-    daily: dict = defaultdict(lambda: {"sessions": 0, "converted": 0, "recovered_cents": 0})
+    daily: dict = defaultdict(lambda: {"sessions": 0, "converted": 0, "recovered_cents": 0, "messages_sent": 0})
     for s in result.data:
         day = (s.get("created_at") or "")[:10]
         if not day:
             continue
         daily[day]["sessions"] += 1
+        daily[day]["messages_sent"] += s.get("messages_sent") or 0
         if s["status"] == "converted":
             daily[day]["converted"] += 1
             daily[day]["recovered_cents"] += s.get("amount_cents") or 0
