@@ -15,7 +15,7 @@ All endpoints accept the same optional query filters:
 
 import os
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Query
@@ -48,7 +48,31 @@ def _apply_base_filters(query, start_date, end_date, platform, product):
 
 
 def _default_start() -> date:
-    return date.today() - timedelta(days=30)
+    # Default window is the current day (dashboard opens on "today").
+    return date.today()
+
+
+async def _fetch_all(table, columns, sd, ed, platform, product, extra=None):
+    """
+    Fetch ALL matching rows, paginating past PostgREST's 1000-row cap.
+    Without this, aggregations on busy periods (>1000 sessions) would be
+    silently truncated and undercount.
+    """
+    db = await get_supabase()
+    page_size = 1000
+    offset = 0
+    rows: list[dict] = []
+    while True:
+        query = db.table(table).select(columns)
+        query = _apply_base_filters(query, sd, ed, platform, product)
+        if extra is not None:
+            query = extra(query)
+        result = await query.range(offset, offset + page_size - 1).execute()
+        batch = result.data or []
+        rows.extend(batch)
+        if len(batch) < page_size:
+            return rows
+        offset += page_size
 
 
 # ── endpoints ──────────────────────────────────────────────────────────────
@@ -61,15 +85,12 @@ async def get_stats(
     product: Optional[str] = Query(default=None),
 ):
     """Top-level KPI cards."""
-    db = await get_supabase()
-
     sd = start_date or _default_start()
     ed = end_date or date.today()
 
-    query = db.table("recovery_sessions").select("status, messages_sent, amount_cents")
-    query = _apply_base_filters(query, sd, ed, platform, product)
-    result = await query.execute()
-    sessions = result.data
+    sessions = await _fetch_all(
+        "recovery_sessions", "status, messages_sent, amount_cents", sd, ed, platform, product
+    )
 
     total = len(sessions)
     converted = sum(1 for s in sessions if s["status"] == "converted")
@@ -82,13 +103,19 @@ async def get_stats(
         s.get("amount_cents") or 0 for s in sessions if s["status"] == "converted"
     )
 
+    # Conversion rate over *resolved* sessions only — active sessions are still
+    # in-flight and haven't had a chance to convert, so counting them in the
+    # denominator understates the real rate.
+    resolved = total - active
+
     return {
         "total_sessions": total,
         "converted": converted,
         "active": active,
         "exhausted": exhausted,
         "cancelled": cancelled,
-        "conversion_rate": round(converted / total * 100, 1) if total > 0 else 0.0,
+        "resolved": resolved,
+        "conversion_rate": round(converted / resolved * 100, 1) if resolved > 0 else 0.0,
         "messages_sent": messages_sent,
         "total_revenue_cents": total_revenue_cents,
         "recovered_cents": recovered_cents,
@@ -142,17 +169,16 @@ async def get_funnel(
     product: Optional[str] = Query(default=None),
 ):
     """Conversions by message number — shows which message converts most."""
-    db = await get_supabase()
-
     sd = start_date or _default_start()
     ed = end_date or date.today()
 
-    query = db.table("recovery_sessions").select("messages_sent").eq("status", "converted")
-    query = _apply_base_filters(query, sd, ed, platform, product)
-    result = await query.execute()
+    rows = await _fetch_all(
+        "recovery_sessions", "messages_sent", sd, ed, platform, product,
+        extra=lambda q: q.eq("status", "converted"),
+    )
 
     funnel = {1: 0, 2: 0, 3: 0}
-    for s in result.data:
+    for s in rows:
         n = s.get("messages_sent") or 0
         if n in funnel:
             funnel[n] += 1
@@ -167,19 +193,16 @@ async def get_product_stats(
     platform: Optional[str] = Query(default=None),
 ):
     """Aggregated performance per product."""
-    db = await get_supabase()
-
     sd = start_date or _default_start()
     ed = end_date or date.today()
 
-    query = db.table("recovery_sessions").select(
-        "template_prefix, product_name, status, amount_cents"
+    rows = await _fetch_all(
+        "recovery_sessions", "template_prefix, product_name, status, amount_cents",
+        sd, ed, platform, None,
     )
-    query = _apply_base_filters(query, sd, ed, platform, None)
-    result = await query.execute()
 
     stats: dict = {}
-    for s in result.data:
+    for s in rows:
         prefix = s["template_prefix"]
         if prefix not in stats:
             stats[prefix] = {
@@ -218,17 +241,16 @@ async def get_daily(
     product: Optional[str] = Query(default=None),
 ):
     """Sessions and conversions per day for the timeline chart."""
-    db = await get_supabase()
-
     sd = start_date or _default_start()
     ed = end_date or date.today()
 
-    query = db.table("recovery_sessions").select("created_at, status, amount_cents, messages_sent")
-    query = _apply_base_filters(query, sd, ed, platform, product)
-    result = await query.execute()
+    rows = await _fetch_all(
+        "recovery_sessions", "created_at, status, amount_cents, messages_sent",
+        sd, ed, platform, product,
+    )
 
     daily: dict = defaultdict(lambda: {"sessions": 0, "converted": 0, "recovered_cents": 0, "messages_sent": 0})
-    for s in result.data:
+    for s in rows:
         day = (s.get("created_at") or "")[:10]
         if not day:
             continue

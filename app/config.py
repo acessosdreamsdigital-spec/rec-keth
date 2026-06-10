@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # Cost sync (Meta pricing_analytics) interval — daily by default
     cost_sync_interval_seconds: int = 86_400
     cost_sync_lookback_days: int = 7
+    # USD→BRL rate used only to show the real (USD) Meta cost alongside the
+    # BRL revenue in the dashboard. Adjustable; not used for billing.
+    usd_brl_rate: float = 5.40
 
     # Webhook signature verification (opt-in — enforced only when set).
     # Leave empty to keep accepting all webhooks (current behaviour).
