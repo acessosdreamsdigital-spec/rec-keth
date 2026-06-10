@@ -11,11 +11,14 @@ Event mapping:
   webhook_event_type == "order_approved"  → purchase confirmed → stop sequence
 """
 
+import json
 import logging
 
 from fastapi import APIRouter, Request, Response
 
+from app.config import settings
 from app.services.recovery import handle_purchase_approved, handle_recovery_event
+from app.utils.security import verify_kiwify
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +33,10 @@ _RECOVERY_EVENT_MAP = {
 
 @router.post("/kiwify")
 async def kiwify_webhook(request: Request) -> Response:
-    body: dict = await request.json()
+    raw = await request.body()
+    if not verify_kiwify(request, raw, settings.kiwify_webhook_token):
+        return Response(status_code=401)
+    body: dict = json.loads(raw or b"{}")
 
     event_type: str = body.get("webhook_event_type", "")
     order_status: str = body.get("order_status", "") or body.get("status", "")
