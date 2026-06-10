@@ -395,9 +395,10 @@ let charts = {};
 document.addEventListener('DOMContentLoaded', () => { setDefaultDates(); loadDashboard(); });
 
 function setDefaultDates() {
-  const t = new Date(), a = new Date(t); a.setDate(a.getDate()-30);
+  // Abre sempre com o dia de hoje (início = fim = hoje).
+  const t = new Date();
   document.getElementById('end_date').value   = fmtDate(t);
-  document.getElementById('start_date').value = fmtDate(a);
+  document.getElementById('start_date').value = fmtDate(t);
 }
 function fmtDate(d) { return d.toISOString().split('T')[0]; }
 function scrollToTable() { document.getElementById('sessions-section').scrollIntoView({behavior:'smooth'}); }

@@ -15,7 +15,7 @@ All endpoints accept the same optional query filters:
 
 import os
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Query
@@ -48,7 +48,8 @@ def _apply_base_filters(query, start_date, end_date, platform, product):
 
 
 def _default_start() -> date:
-    return date.today() - timedelta(days=30)
+    # Default window is the current day (dashboard opens on "today").
+    return date.today()
 
 
 async def _fetch_all(table, columns, sd, ed, platform, product, extra=None):
