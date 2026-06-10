@@ -449,7 +449,7 @@ async function loadStats() {
     : 0;
   document.getElementById('kpi-cards').innerHTML = `
     ${kpiCard('Sessões Abertas',   d.total_sessions,               'analytics',   '+'+d.active+' ativas',              rate,   'text-primary',      'Total de sessões de recuperação iniciadas no período — inclui ativas, convertidas, esgotadas e canceladas.')}
-    ${kpiCard('Convertidas',       d.converted,                    'trending_up',  rate+'% de conversão',              rate,   'text-emerald-600',  'Sessões em que o contato realizou a compra após receber ao menos uma mensagem da sequência.')}
+    ${kpiCard('Convertidas',       d.converted,                    'trending_up',  rate+'% de conversão',              rate,   'text-emerald-600',  'Sessões em que o contato comprou após receber a sequência. A taxa considera só sessões finalizadas (convertidas/esgotadas/canceladas), excluindo as ainda ativas.')}
     ${kpiCard('Receita Total',     fmtCurrency(d.total_revenue_cents), 'account_balance', d.messages_sent+' msgs enviadas', 100, 'text-slate-500', 'Soma do valor de todas as sessões do período, independente de status — representa o potencial de recuperação.')}
     ${kpiCard('Receita Recuperada',fmtCurrency(d.recovered_cents), 'payments',    recPct+'% da receita total',         recPct, 'text-blue-600',     'Valor efetivamente recuperado — soma apenas das sessões com status convertida.')}
   `;
@@ -646,32 +646,47 @@ function lightChartOptions({suggestedMax}={}) {
 }
 
 // ── Costs ─────────────────────────────────────────────────────────────────────
-const MSG_COST = 0.35; // R$ por mensagem
+const MSG_COST = 0.35; // R$ por mensagem — fallback estimado (usado só sem custo real)
 
 async function loadCosts() {
-  const [stats, daily] = await Promise.all([
+  const [stats, daily, cost] = await Promise.all([
     fetchJSON('/dashboard/stats?' + buildParams()),
     fetchJSON('/dashboard/daily?' + buildParams()),
+    fetchJSON('/cost?' + buildParams()),
   ]);
   if (!stats || !daily) return;
 
   const totalMsgs   = stats.messages_sent || 0;
-  const totalCost   = totalMsgs * MSG_COST;
   const converted   = stats.converted || 0;
+
+  // Custo REAL cobrado pela Meta (USD) quando disponível; senão, estimativa.
+  const hasReal     = cost && cost.total_cost > 0;
+  const rate        = (cost && cost.usd_brl_rate) || 3.5; // só p/ exibição
+  const totalCost   = hasReal ? cost.total_cost_brl : totalMsgs * MSG_COST; // em R$
+  const totalUsd    = hasReal ? cost.total_cost : null;
   const cpa         = converted > 0 ? totalCost / converted : null; // cost per acquisition
 
+  const totalSub    = hasReal
+    ? `US$ ${totalUsd.toFixed(2)} · real (Meta) @ R$${rate.toFixed(2)}`
+    : totalMsgs + ' msgs × R$ 0,35 (estimado)';
+  const totalTip    = hasReal
+    ? `Custo REAL cobrado pela Meta no período (US$ ${totalUsd.toFixed(2)}), convertido a R$ ${rate.toFixed(2)}/US$. Valor da conta toda — a Meta não separa custo por produto/plataforma.`
+    : 'Estimativa: nº de mensagens × R$ 0,35. Configure META_WABA_ID para o custo real da Meta.';
+
   document.getElementById('cost-kpi-cards').innerHTML = `
-    ${costKpiCard('Total Gasto', fmtCurrency(totalCost * 100), 'receipt_long', totalMsgs + ' mensagens enviadas', 'text-amber-600',
-      'Custo total de disparos no período: nº de mensagens enviadas × R$ 0,35.')}
+    ${costKpiCard('Total Gasto', fmtCurrency(totalCost * 100), 'receipt_long', totalSub, 'text-amber-600', totalTip)}
     ${costKpiCard('Custo por Conversão', cpa !== null ? fmtCurrency(cpa * 100) : '–', 'auto_graph', converted + ' conversões', 'text-indigo-500',
       'Quanto custou, em média, cada venda recuperada. Total gasto ÷ sessões convertidas.')}
     ${costKpiCard('Custo / Receita', stats.recovered_cents > 0 ? (totalCost / (stats.recovered_cents / 100) * 100).toFixed(1) + '%' : '–', 'percent', 'do valor recuperado', 'text-rose-500',
       'Proporção do custo de mensagens em relação à receita efetivamente recuperada no período.')}
   `;
 
-  // Daily cost chart
+  // Daily cost chart — usa custo real por dia (R$) quando houver, senão estimativa.
+  const byDay     = (cost && cost.by_day) || {};
   const labels    = daily.map(d => fmtDayLabel(d.day));
-  const costData  = daily.map(d => +((d.messages_sent || 0) * MSG_COST).toFixed(2));
+  const costData  = daily.map(d => hasReal
+    ? +(((byDay[d.day] || 0) * rate)).toFixed(2)
+    : +((d.messages_sent || 0) * MSG_COST).toFixed(2));
 
   if (charts.costs) charts.costs.destroy();
   const ctx = document.getElementById('chartCosts').getContext('2d');
