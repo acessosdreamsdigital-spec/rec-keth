@@ -12,11 +12,14 @@ Event mapping:
     + transaction.status == "paid" → purchase confirmed → stop sequence
 """
 
+import json
 import logging
 
 from fastapi import APIRouter, Request, Response
 
+from app.config import settings
 from app.services.recovery import handle_purchase_approved, handle_recovery_event
+from app.utils.security import verify_assiny
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +35,10 @@ _RECOVERY_EVENT_MAP = {
 
 @router.post("/assiny")
 async def assiny_webhook(request: Request) -> Response:
-    body: dict = await request.json()
+    raw = await request.body()
+    if not verify_assiny(request, raw, settings.assiny_webhook_token):
+        return Response(status_code=401)
+    body: dict = json.loads(raw or b"{}")
 
     event: str = body.get("event", "")
     data: dict = body.get("data") or {}
