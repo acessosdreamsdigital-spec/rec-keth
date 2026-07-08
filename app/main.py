@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 from contextlib import asynccontextmanager
 from datetime import date
 
@@ -11,9 +12,11 @@ from app.routers import assiny, dashboard, kiwify
 from app.services.meta_analytics import sync_costs
 from app.services.scheduler import run_cost_sync, run_scheduler
 
+# Railway colore stderr de vermelho — manda tudo pra stdout
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+    stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
 
