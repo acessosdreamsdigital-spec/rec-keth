@@ -506,6 +506,10 @@ async def create_journey(
         journey_id = result.data[0]["id"]
         logger.info(f"Journey CREATED: {journey_id} for {phone} product={product_tag}")
 
+    # Trigger lead analysis in background (new purchase → re-evaluate)
+    from app.services.lead_analyzer import analyze_lead_background
+    analyze_lead_background(phone, force=False)
+
     # Schedule first template (D+1)
     await _schedule_journey_message(
         journey_id=journey_id,

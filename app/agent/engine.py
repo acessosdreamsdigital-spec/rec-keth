@@ -17,10 +17,12 @@ from langchain_community.chat_message_histories import RedisChatMessageHistory
 
 from app.agent.prompt import JULIA_SYSTEM_PROMPT
 from app.agent.tools import (
+    classificar_lead,
     consultar_produto,
     enviar_checkout,
     enviar_formulario,
     enviar_suporte,
+    verificar_cliente,
 )
 from app.config import settings
 
@@ -30,7 +32,7 @@ logger = logging.getLogger(__name__)
 # Agent setup (singleton — reused across requests)
 # ═══════════════════════════════════════════════════════════════
 
-TOOLS = [consultar_produto, enviar_checkout, enviar_formulario, enviar_suporte]
+TOOLS = [consultar_produto, enviar_checkout, enviar_formulario, enviar_suporte, verificar_cliente, classificar_lead]
 
 _llm: Optional[ChatOpenAI] = None
 _agent_executor: Optional[AgentExecutor] = None

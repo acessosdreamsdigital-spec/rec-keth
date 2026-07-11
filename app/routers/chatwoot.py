@@ -215,6 +215,10 @@ async def _call_agent(
                 from app.services.whatsapp import send_text
                 await send_text(phone=phone, body=reply)
             logger.info(f"Agent reply sent to {phone}: {reply[:80]}...")
+
+            # Trigger lead analysis in background after 3+ messages exchanged
+            from app.services.lead_analyzer import analyze_lead_background
+            analyze_lead_background(phone)
     except Exception:
         logger.exception(f"Agent error for {phone}")
 

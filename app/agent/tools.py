@@ -132,7 +132,7 @@ def enviar_suporte() -> str:
 
 
 # ═══════════════════════════════════════════════════════════════
-# Database tools — customer context
+# Database tools — customer context + intelligence
 # ═══════════════════════════════════════════════════════════════
 
 @tool
@@ -224,4 +224,85 @@ def verificar_cliente(whatsapp: str) -> str:
     if lead.get("last_interaction"):
         parts.append(f"🕐 Última interação: {lead['last_interaction']}")
 
+    # 5. Check lead_insights
+    insights = _supa(f"lead_insights?phone=eq.{phone}&select=*&limit=1")
+    insight = insights[0] if isinstance(insights, list) and insights else {}
+    if insight:
+        temp = insight.get("temperatura", "frio")
+        tick = insight.get("ticket", "low")
+        parts.append(f"🌡️ Temperatura: {temp} | Ticket: {tick}")
+        if insight.get("dores"):
+            dores = insight["dores"]
+            parts.append(f"💢 Dores: {', '.join(dores) if isinstance(dores, list) else dores}")
+        if insight.get("ambicoes"):
+            ambs = insight["ambicoes"]
+            parts.append(f"🎯 Ambições: {', '.join(ambs) if isinstance(ambs, list) else ambs}")
+        if insight.get("perfil"):
+            parts.append(f"📝 Perfil: {insight['perfil']}")
+
     return "\n".join(parts)
+
+
+@tool
+def classificar_lead(whatsapp: str, temperatura: str = "", ticket: str = "", estagio: str = "") -> str:
+    """
+    Atualiza a classificacao do lead no banco. Use quando identificar
+    mudancas no perfil durante a conversa — ex: lead demonstrou urgencia
+    (marcar quente), lead tem budget alto (ticket high).
+
+    Args:
+        whatsapp: Numero do WhatsApp do lead
+        temperatura: "quente", "morno", ou "frio" (deixe vazio se nao mudou)
+        ticket: "high" ou "low" (deixe vazio se nao mudou)
+        estagio: "consciencia", "consideracao", "decisao", ou "cliente" (deixe vazio se nao mudou)
+    """
+    phone = whatsapp.strip().replace("+", "").replace("-", "").replace(" ", "")
+    if not phone.startswith("55"):
+        phone = "55" + phone
+
+    updates = {}
+    if temperatura and temperatura in ("quente", "morno", "frio"):
+        updates["temperatura"] = temperatura
+    if ticket and ticket in ("high", "low"):
+        updates["ticket"] = ticket
+    if estagio and estagio in ("consciencia", "consideracao", "decisao", "cliente"):
+        updates["estagio"] = estagio
+
+    if not updates:
+        return "Nenhuma classificacao valida fornecida. Use quente/morno/frio, high/low, ou um estagio valido."
+
+    from datetime import datetime, timezone
+    updates["ultima_analise"] = datetime.now(timezone.utc).isoformat()
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    # Upsert
+    existing = _supa(f"lead_insights?phone=eq.{phone}&select=id&limit=1")
+    if isinstance(existing, list) and existing:
+        # Update
+        url = f"{SUPABASE_URL}/rest/v1/lead_insights?id=eq.{existing[0]['id']}"
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        }
+        try:
+            httpx.patch(url, headers=headers, json=updates, timeout=10)
+        except Exception:
+            pass
+    else:
+        updates["phone"] = phone
+        url = f"{SUPABASE_URL}/rest/v1/lead_insights"
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        }
+        try:
+            httpx.post(url, headers=headers, json=updates, timeout=10)
+        except Exception:
+            pass
+
+    campos = ", ".join(f"{k}={v}" for k, v in updates.items() if k not in ("ultima_analise", "updated_at"))
+    return f"Lead {phone} atualizado: {campos}"
