@@ -1,760 +1,150 @@
 <!DOCTYPE html>
-<html class="light" lang="pt-BR">
+<html lang="pt-BR">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Differs Company — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
-  body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
-  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-  .glass-panel {
-    background: rgba(255,255,255,0.7);
-    backdrop-filter: blur(32px);
-    border: 1px solid rgba(0,0,0,0.05);
-    box-shadow: 0 4px 24px -1px rgba(0,0,0,0.03);
-  }
-  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 10px; }
-  /* Tooltips */
-  .tip {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 15px; height: 15px; border-radius: 50%;
-    background: #e2e8f0; color: #94a3b8;
-    font-size: 9px; font-weight: 800; cursor: help;
-    position: relative; flex-shrink: 0; vertical-align: middle;
-    margin-left: 5px; transition: background .15s;
-  }
-  .tip:hover { background: #cbd5e1; color: #475569; }
-  .tip::after {
-    content: attr(data-tip);
-    position: absolute; bottom: calc(100% + 8px); left: 50%;
-    transform: translateX(-50%);
-    background: #1e293b; color: #f1f5f9;
-    padding: 8px 12px; border-radius: 10px;
-    font-size: 12px; font-weight: 400; line-height: 1.6;
-    white-space: normal; width: 220px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-    pointer-events: none; z-index: 999;
-    opacity: 0; transition: opacity .15s;
-  }
-  .tip::before {
-    content: '';
-    position: absolute; bottom: calc(100% + 2px); left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent; border-top-color: #1e293b;
-    opacity: 0; transition: opacity .15s; z-index: 999;
-  }
-  .tip:hover::after, .tip:hover::before { opacity: 1; }
-  /* Tooltip apontando para baixo (usado dentro de containers com overflow-hidden) */
-  .tip-down::after {
-    bottom: auto; top: calc(100% + 8px);
-  }
-  .tip-down::before {
-    bottom: auto; top: calc(100% + 2px);
-    border-top-color: transparent; border-bottom-color: #1e293b;
-  }
-  .input-filter {
-    background: #f1f5f9;
-    border: none;
-    border-radius: 9999px;
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #111827;
-    outline: none;
-    transition: all .2s;
-  }
-  .input-filter:focus { box-shadow: 0 0 0 2px rgba(0,86,210,.25); }
-  .input-filter option { background: #fff; }
-  .badge {
-    display: inline-flex; align-items: center;
-    padding: 3px 10px; border-radius: 999px;
-    font-size: 11px; font-weight: 700; letter-spacing: .03em;
-  }
-  .badge-converted { background: #d1fae5; color: #065f46; }
-  .badge-active    { background: #dbeafe; color: #1e40af; }
-  .badge-exhausted { background: #f1f5f9; color: #64748b; }
-  .badge-cancelled { background: #fee2e2; color: #991b1b; }
-  .badge-kiwify    { background: #ede9fe; color: #5b21b6; }
-  .badge-assiny    { background: #dbeafe; color: #1d4ed8; }
-  .badge-abandoned { background: #ffedd5; color: #9a3412; }
-  .badge-waiting   { background: #fef9c3; color: #713f12; }
-  .badge-refused   { background: #fee2e2; color: #991b1b; }
-  table { border-collapse: collapse; width: 100%; }
-  thead th {
-    background: #f8fafc;
-    color: #94a3b8; font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .08em;
-    padding: 12px 16px; text-align: left;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    position: relative;
-  }
-  tbody tr { border-bottom: 1px solid rgba(0,0,0,0.03); transition: background .15s; }
-  tbody tr:hover { background: rgba(0,86,210,0.02); }
-  tbody td { padding: 14px 16px; font-size: 13px; color: #374151; vertical-align: middle; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,sans-serif;background:#f1f5f9;color:#0f172a}
+main{max-width:1440px;margin:0 auto;padding:24px 32px}
+.glass-panel{background:#fff;border:1px solid rgba(0,0,0,.04);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+h3{font-size:24px;font-weight:900;letter-spacing:-.02em}
+h5{font-size:18px;font-weight:800;letter-spacing:-.01em}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.badge-active{background:#dbeafe;color:#1e40af}.badge-converted{background:#d1fae5;color:#065f46}
+.badge-exhausted{background:#f1f5f9;color:#475569}.badge-cancelled{background:#fee2e2;color:#991b1b}
+.badge-paused{background:#fef3c7;color:#92400e}.badge-completed{background:#e0e7ff;color:#3730a3}
+.badge-opted_out{background:#fce7f3;color:#9d174d}.badge-kiwify{background:#e0f2fe;color:#0369a1}
+.badge-assiny{background:#fef3c7;color:#92400e}.badge-abandoned{background:#f1f5f9;color:#475569}
+.badge-waiting{background:#fef3c7;color:#92400e}.badge-refused{background:#fee2e2;color:#991b1b}
+.temp-quente{background:#fee2e2;color:#dc2626}.temp-morno{background:#fef3c7;color:#d97706}.temp-frio{background:#dbeafe;color:#2563eb}
+.ticket-high{background:#ede9fe;color:#7c3aed}.ticket-low{background:#f1f5f9;color:#64748b}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%}
+.tab-nav{display:flex;gap:4px;margin-bottom:24px;background:#e2e8f0;border-radius:12px;padding:4px;width:fit-content}
+.tab-btn{padding:10px 24px;border:none;background:transparent;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;color:#64748b;transition:all .15s}
+.tab-btn.active{background:#fff;color:#0056D2;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.tab-content{display:none}.tab-content.active{display:block}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.filter-bar input,.filter-bar select{padding:8px 14px;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:inherit;background:#fff}
+.filter-bar input:focus,.filter-bar select:focus{outline:none;border-color:#0056D2}
+.filter-bar input{min-width:220px}
+.btn{padding:8px 18px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
+.btn-primary{background:#0056D2;color:#fff}.btn-ghost{border:1px solid #e2e8f0;background:#fff;color:#64748b}
+.lead-row{cursor:pointer}.lead-row:hover{background:#f8fafc}
+.lead-detail{background:#f8fafc;border-top:1px solid #e2e8f0}
+.kpi-value{font-size:28px;font-weight:900}.kpi-label{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.sub{font-size:12px;font-weight:600}table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e2e8f0}
+td{padding:10px 16px;font-size:13px;border-bottom:1px solid #f1f5f9}
+.spinner{width:40px;height:40px;border:3px solid #e2e8f0;border-top-color:#0056D2;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
-<script id="tailwind-config">
-  tailwind.config = {
-    darkMode: "class",
-    theme: {
-      extend: {
-        colors: {
-          "primary": "#0056D2",
-          "on-primary": "#FFFFFF",
-          "surface": "#F9FAFB",
-          "on-surface": "#111827",
-          "surface-container": "#FFFFFF",
-          "surface-variant": "#F3F4F6",
-          "outline": "#E5E7EB",
-        },
-        borderRadius: { DEFAULT: "1rem", lg: "1.5rem", xl: "2rem", full: "9999px" },
-        fontFamily: { headline: ["Inter"], body: ["Inter"] }
-      }
-    }
-  }
-</script>
 </head>
-<body class="bg-surface text-on-surface min-h-screen selection:bg-primary/10">
-
-<!-- ── Sidebar ── -->
-<aside class="fixed left-0 top-0 h-full flex flex-col p-6 z-50 bg-white/80 backdrop-blur-3xl w-72 border-r border-black/[0.04] font-['Inter'] tracking-tight font-semibold text-sm shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-  <div class="flex items-center gap-3 mb-12 px-2">
-    <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-      <span class="material-symbols-outlined text-white text-[20px]" style="font-variation-settings:'FILL' 1;">mark_unread_chat_alt</span>
-    </div>
-    <div>
-      <h1 class="text-xl font-black tracking-tighter text-slate-900 leading-none">The Differs</h1>
-      <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400 mt-1">Recovery Dashboard</p>
-    </div>
-  </div>
-  <nav class="flex-1 space-y-1">
-    <a class="flex items-center gap-4 p-4 rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/10" href="#">
-      <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'FILL' 1;">dashboard</span>
-      <span>Dashboard</span>
-    </a>
-    <a onclick="scrollToTable()" class="flex items-center gap-4 p-4 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 cursor-pointer transition-all">
-      <span class="material-symbols-outlined text-[20px]">table_rows</span>
-      <span>Sessões</span>
-    </a>
-    <a class="flex items-center gap-4 p-4 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 transition-all cursor-pointer">
-      <span class="material-symbols-outlined text-[20px]">inventory_2</span>
-      <span>Produtos</span>
-    </a>
-    <a onclick="scrollToSection('costs-section')" class="flex items-center gap-4 p-4 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 cursor-pointer transition-all">
-      <span class="material-symbols-outlined text-[20px]">receipt_long</span>
-      <span>Gastos</span>
-    </a>
-  </nav>
-  <div class="mt-auto space-y-3">
-    <div class="glass-panel rounded-xl p-4">
-      <p class="text-xs text-slate-500 font-medium mb-1">Scheduler</p>
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span class="text-xs font-bold text-slate-700">Ativo — polling 30s</span>
-      </div>
-    </div>
-    <button onclick="loadDashboard()" class="w-full py-3.5 bg-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-95 transition-all shadow-lg shadow-primary/20 text-sm">
-      <span class="material-symbols-outlined text-[18px]">refresh</span>
-      <span>Atualizar dados</span>
-    </button>
-  </div>
-</aside>
-
-<!-- ── Header ── -->
-<header class="fixed top-0 right-0 left-72 z-40 flex justify-between items-center px-10 h-20 bg-white/60 backdrop-blur-2xl border-b border-black/[0.04]">
-  <div class="flex items-center gap-6">
-    <h2 class="text-xl font-black text-slate-900 tracking-[-0.04em]">Dashboard</h2>
-    <div class="relative flex items-center group">
-      <span class="material-symbols-outlined absolute left-3.5 text-slate-400 text-[18px] group-focus-within:text-primary transition-colors">search</span>
-      <input id="email" onkeydown="if(event.key==='Enter') applyFilters()" class="bg-slate-100 border-none rounded-full pl-10 pr-5 py-2 w-72 text-sm focus:ring-1 focus:ring-primary/40 transition-all outline-none text-slate-900 placeholder:text-slate-400 font-medium" placeholder="Buscar por e-mail..." type="text"/>
-    </div>
-  </div>
-  <div class="flex items-center gap-3">
-    <select id="product" onchange="applyFilters()" class="input-filter">
-      <option value="">Todos os produtos</option>
-      <option value="rec_combo_wow">Combo Wow</option>
-      <option value="rec_capcut_wow">CapCut Wow</option>
-      <option value="rec_conteudo_wow">Conteúdo Wow</option>
-      <option value="rec_mpi">MPI</option>
-    </select>
-    <select id="platform" onchange="applyFilters()" class="input-filter">
-      <option value="">Todas plataformas</option>
-      <option value="kiwify">Kiwify</option>
-      <option value="assiny">Assiny</option>
-    </select>
-    <select id="status" onchange="applyFilters()" class="input-filter">
-      <option value="">Todos os status</option>
-      <option value="active">Ativa</option>
-      <option value="converted">Convertida</option>
-      <option value="exhausted">Esgotada</option>
-      <option value="cancelled">Cancelada</option>
-    </select>
-    <div class="h-6 w-px bg-slate-200"></div>
-    <span class="text-xs text-slate-400 font-medium" id="last-updated">–</span>
-  </div>
+<body>
+<div id="blocker" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(241,245,249,.7);display:flex;align-items:center;justify-content:center;z-index:9999"><div class="spinner"></div></div>
+<main>
+<header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+<div><h3 style="display:inline">The Differs Company</h3><span style="margin-left:12px;font-size:12px;color:#94a3b8;font-weight:600" id="last-updated">—</span></div>
 </header>
 
-<!-- ── Main ── -->
-<main class="pl-72 pt-20 min-h-screen">
-<div class="p-10 max-w-7xl mx-auto space-y-10">
+<div class="tab-nav">
+<button class="tab-btn active" onclick="switchTab('rec')">📊 Recuperação</button>
+<button class="tab-btn" onclick="switchTab('journey')">🛤️ Jornada</button>
+</div>
 
-  <!-- Title + date filters -->
-  <div class="flex justify-between items-end">
-    <div>
-      <h3 class="text-4xl font-black tracking-tight text-slate-900 mb-1">Visão Geral</h3>
-      <p class="text-slate-500 font-medium text-sm">Rastreamento de recuperação de ponta a ponta · The Differs Company</p>
-    </div>
-    <div class="flex gap-3">
-      <input type="date" id="start_date" onchange="applyFilters()" class="input-filter" style="border-radius:9999px;"/>
-      <input type="date" id="end_date" onchange="applyFilters()" class="input-filter" style="border-radius:9999px;"/>
-      <button onclick="clearFilters()" class="px-5 py-2.5 rounded-full border border-slate-200 bg-white text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-all text-slate-600">
-        <span class="material-symbols-outlined text-[16px]">filter_alt_off</span> Limpar
-      </button>
-    </div>
-  </div>
+<!-- RECOVERY TAB -->
+<div id="tab-rec" class="tab-content active">
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px" id="rec-kpi-cards"></div>
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px">
+<div class="glass-panel" style="padding:24px"><h5 style="margin-bottom:16px">Visão Diária</h5><div style="height:200px"><canvas id="chartDaily"></canvas></div></div>
+<div class="glass-panel" style="padding:24px"><h5 style="margin-bottom:16px">Sessões Recentes</h5><div id="recent-sessions" style="max-height:300px;overflow-y:auto"></div></div>
+</div>
+<div style="display:grid;grid-template-columns:7fr 5fr;gap:16px;margin-bottom:24px">
+<div class="glass-panel" style="padding:24px"><h5 style="margin-bottom:16px">Performance por Produto</h5><div style="height:180px"><canvas id="chartProducts"></canvas></div></div>
+<div class="glass-panel" style="padding:24px"><h5 style="margin-bottom:16px">Funil de Conversão</h5><div style="height:180px"><canvas id="chartFunnel"></canvas></div></div>
+</div>
+<div class="glass-panel" style="overflow:hidden;margin-bottom:24px">
+<div style="padding:12px 20px;border-bottom:1px solid #f1f5f9"><h5>Sessões</h5></div>
+<div style="overflow-x:auto"><table><thead><tr><th>Usuário</th><th>Produto</th><th>Plataforma</th><th>Status</th><th>Valor</th><th>Criado</th></tr></thead><tbody id="rec-tbody"></tbody></table></div>
+<div style="display:flex;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9"><span id="rec-pagination" style="font-size:12px;color:#94a3b8"></span><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="recPage(-1)">←</button><button class="btn btn-ghost" onclick="recPage(1)">→</button></div></div>
+</div>
+</div>
 
-  <!-- KPI Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6" id="kpi-cards">
-    <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-24 bg-slate-100 rounded-lg"></div></div>
-    <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-24 bg-slate-100 rounded-lg"></div></div>
-    <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-24 bg-slate-100 rounded-lg"></div></div>
-    <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-24 bg-slate-100 rounded-lg"></div></div>
-  </div>
+<!-- JOURNEY TAB -->
+<div id="tab-journey" class="tab-content">
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px" id="j-kpi-1"></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px" id="j-kpi-2"></div>
 
-  <!-- Chart + Activity -->
-  <div class="grid grid-cols-12 gap-6 items-start">
+<div class="filter-bar">
+<input type="text" id="j-search" placeholder="🔍 Buscar nome ou WhatsApp..." oninput="loadJourneyLeads()">
+<select id="j-state" onchange="loadJourneyLeads()"><option value="">Todos estados</option></select>
+<select id="j-temp" onchange="loadJourneyLeads()"><option value="">Todas temps</option><option value="quente">Quente</option><option value="morno">Morno</option><option value="frio">Frio</option></select>
+<select id="j-ticket" onchange="loadJourneyLeads()"><option value="">Todos tickets</option><option value="high">High</option><option value="low">Low</option></select>
+</div>
 
-    <!-- Daily Chart -->
-    <div class="col-span-12 lg:col-span-8 glass-panel p-8 rounded-lg">
-      <div class="flex justify-between items-center mb-8">
-        <div>
-          <h5 class="text-lg font-black text-slate-900">Sessões & Conversões <span class="tip" data-tip="Evolução diária de novas sessões de recuperação abertas vs. compras aprovadas no período filtrado.">?</span></h5>
-          <p class="text-slate-500 text-sm font-medium mt-0.5">Evolução diária no período selecionado</p>
-        </div>
-        <div class="flex gap-4">
-          <div class="flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-primary"></span>
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sessões</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Convertidas</span>
-          </div>
-        </div>
-      </div>
-      <div style="height:240px;"><canvas id="chartDaily"></canvas></div>
-    </div>
+<div style="display:grid;grid-template-columns:5fr 7fr;gap:16px;margin-bottom:24px">
+<div class="glass-panel" style="padding:24px"><h5 style="margin-bottom:16px">Temperatura dos Leads</h5><div style="height:180px"><canvas id="chartTemp"></canvas></div></div>
+<div class="glass-panel" style="padding:24px"><h5 style="margin-bottom:16px">Distribuição por Produto</h5><div style="height:180px"><canvas id="chartJourneyProducts"></canvas></div></div>
+</div>
 
-    <!-- Recent Sessions -->
-    <div class="col-span-12 lg:col-span-4 space-y-4">
-      <div class="flex justify-between items-center px-1">
-        <h5 class="text-lg font-black text-slate-900">Sessões Recentes</h5>
-        <button onclick="scrollToTable()" class="text-primary text-xs font-bold uppercase tracking-widest hover:underline">Ver todas</button>
-      </div>
-      <div id="recent-sessions" class="space-y-3 max-h-[360px] overflow-y-auto custom-scrollbar pr-1">
-        <div class="glass-panel p-4 rounded-lg animate-pulse"><div class="h-12 bg-slate-100 rounded"></div></div>
-        <div class="glass-panel p-4 rounded-lg animate-pulse"><div class="h-12 bg-slate-100 rounded"></div></div>
-        <div class="glass-panel p-4 rounded-lg animate-pulse"><div class="h-12 bg-slate-100 rounded"></div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Product Stats + Funnel -->
-  <div class="grid grid-cols-12 gap-6">
-    <div class="col-span-12 lg:col-span-7 glass-panel p-8 rounded-lg">
-      <div class="mb-6">
-        <h5 class="text-lg font-black text-slate-900">Performance por Produto <span class="tip" data-tip="Compara o total de sessões abertas vs. convertidas para cada produto. Mostra quais produtos têm maior taxa de recuperação.">?</span></h5>
-        <p class="text-slate-500 text-sm font-medium mt-0.5">Total de sessões vs. convertidas</p>
-      </div>
-      <div style="height:200px;"><canvas id="chartProducts"></canvas></div>
-    </div>
-    <div class="col-span-12 lg:col-span-5 glass-panel p-8 rounded-lg">
-      <div class="mb-6">
-        <h5 class="text-lg font-black text-slate-900">Funil de Conversão <span class="tip" data-tip="Mostra após qual mensagem da sequência (1ª, 2ª ou 3ª) o usuário efetuou a compra. Indica qual toque é mais decisivo.">?</span></h5>
-        <p class="text-slate-500 text-sm font-medium mt-0.5">Após qual mensagem a compra foi feita</p>
-      </div>
-      <div style="height:200px;"><canvas id="chartFunnel"></canvas></div>
-    </div>
-  </div>
-
-  <!-- Sessions Table -->
-  <div id="sessions-section" class="glass-panel rounded-lg overflow-hidden">
-    <div class="flex items-center justify-between px-6 py-5 border-b border-black/[0.04]">
-      <div>
-        <h5 class="text-lg font-black text-slate-900">Sessões de Recuperação</h5>
-        <p class="text-sm text-slate-500 font-medium mt-0.5" id="table-count">–</p>
-      </div>
-    </div>
-    <div class="overflow-x-auto">
-      <table id="sessions-table">
-        <thead>
-          <tr>
-            <th>Usuário</th>
-            <th>Produto</th>
-            <th>Plataforma</th>
-            <th>Evento <span class="tip tip-down" data-tip="Tipo de evento que originou esta sessão: carrinho abandonado, pagamento aguardando ou recusado.">?</span></th>
-            <th>Jornada <span class="tip tip-down" data-tip="Cada bolinha representa uma mensagem enviada. Verde = mensagem que converteu; azul = enviada; cinza = não chegou a ser enviada.">?</span></th>
-            <th>Status <span class="tip tip-down" data-tip="Ativa: sequência em andamento. Convertida: compra realizada. Esgotada: 3 msgs enviadas sem conversão. Cancelada: sessão interrompida manualmente.">?</span></th>
-            <th>Valor</th>
-            <th>Criado em</th>
-            <th>Convertido em</th>
-          </tr>
-        </thead>
-        <tbody id="sessions-tbody">
-          <tr><td colspan="9" class="text-center py-12 text-slate-400">Carregando...</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="flex items-center justify-between px-6 py-4 border-t border-black/[0.04]">
-      <span class="text-xs text-slate-400 font-medium" id="pagination-info">–</span>
-      <div class="flex gap-2">
-        <button id="btn-prev" onclick="changePage(-1)" class="px-4 py-2 text-xs font-bold rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all">← Anterior</button>
-        <button id="btn-next" onclick="changePage(1)"  class="px-4 py-2 text-xs font-bold rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all">Próxima →</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Costs Section -->
-  <div id="costs-section" class="space-y-6">
-    <div class="flex justify-between items-end">
-      <div>
-        <h3 class="text-2xl font-black tracking-tight text-slate-900 mb-1">Valor Gasto</h3>
-        <p class="text-slate-500 font-medium text-sm">Custo por envio de mensagens no período filtrado · R$ 0,35 / mensagem</p>
-      </div>
-    </div>
-
-    <!-- Cost KPIs -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="cost-kpi-cards">
-      <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-20 bg-slate-100 rounded-lg"></div></div>
-      <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-20 bg-slate-100 rounded-lg"></div></div>
-      <div class="glass-panel p-8 rounded-lg animate-pulse"><div class="h-20 bg-slate-100 rounded-lg"></div></div>
-    </div>
-
-    <!-- Daily Cost Chart -->
-    <div class="glass-panel p-8 rounded-lg">
-      <div class="flex justify-between items-center mb-6">
-        <div>
-          <h5 class="text-lg font-black text-slate-900">Gasto Diário <span class="tip" data-tip="Custo total de mensagens enviadas por dia no período (sessões criadas × mensagens × R$ 0,35).">?</span></h5>
-          <p class="text-slate-500 text-sm font-medium mt-0.5">Evolução do custo por dia no período selecionado</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="w-3 h-3 rounded-full bg-amber-400"></span>
-          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Custo (R$)</span>
-        </div>
-      </div>
-      <div style="height:220px;"><canvas id="chartCosts"></canvas></div>
-    </div>
-  </div>
-
-  <footer class="pt-6 border-t border-slate-200 flex justify-between items-center text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">
-    <div class="flex gap-8">
-      <span>The Differs Company</span>
-      <span>Kiwify & Assiny</span>
-    </div>
-    <span id="footer-updated">–</span>
-  </footer>
-
+<div class="glass-panel" style="overflow:hidden;margin-bottom:24px">
+<div style="padding:12px 20px;border-bottom:1px solid #f1f5f9"><h5 style="display:inline">Leads</h5><span id="j-count" style="font-size:12px;color:#94a3b8;margin-left:8px"></span></div>
+<div style="overflow-x:auto"><table><thead><tr><th>Nome</th><th>WhatsApp</th><th>Estado</th><th>Temp</th><th>Ticket</th><th>Produtos</th><th>Última Resposta</th></tr></thead><tbody id="j-tbody"></tbody></table></div>
+<div style="display:flex;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9"><span id="j-pagination" style="font-size:12px;color:#94a3b8"></span><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="jPage(-1)">←</button><button class="btn btn-ghost" onclick="jPage(1)">→</button></div></div>
+</div>
 </div>
 </main>
 
 <script>
-// ── Constants ────────────────────────────────────────────────────────────────
-const PRODUCT_NAMES = {
-  rec_combo_wow:'Combo Wow', rec_capcut_wow:'CapCut Wow',
-  rec_conteudo_wow:'Conteúdo Wow', rec_mpi:'MPI',
-};
-const STATUS_BADGE = {
-  active:    '<span class="badge badge-active">Ativa</span>',
-  converted: '<span class="badge badge-converted">Convertida</span>',
-  exhausted: '<span class="badge badge-exhausted">Esgotada</span>',
-  cancelled: '<span class="badge badge-cancelled">Cancelada</span>',
-};
-const PLATFORM_BADGE = {
-  kiwify:'<span class="badge badge-kiwify">Kiwify</span>',
-  assiny:'<span class="badge badge-assiny">Assiny</span>',
-};
-const TRIGGER_BADGE = {
-  abandoned_cart: '<span class="badge badge-abandoned">Carrinho</span>',
-  waiting_payment:'<span class="badge badge-waiting">Aguardando</span>',
-  payment_refused:'<span class="badge badge-refused">Recusado</span>',
-};
-const STATUS_DOT_COLOR = {
-  converted:'bg-emerald-500', active:'bg-blue-500',
-  exhausted:'bg-slate-400', cancelled:'bg-red-400',
-};
+const PRODUCT_NAMES={rec_combo_wow:'Combo Wow',rec_capcut_wow:'CapCut Wow',rec_conteudo_wow:'Conteúdo Wow',rec_mpi:'MPI'};
+const STATE_LABELS={ativacao:'Ativação',engajada:'Engajada',fria:'Trilha Fria',acel_feed:'Feed Wow',acel_conteudo:'Conteúdo Wow',acel_mpi:'MPI',acel_manual_ddi:'Manual DDI',acel_formacao_ddi:'Formação DDI',acel_diagnostico:'Diagnóstico',acel_kasulo:'Kasulo',suporte:'Suporte',paused:'Pausada',completed:'Completa',opted_out:'Opt-out'};
+const SB={active:'<span class="badge badge-active">Ativa</span>',converted:'<span class="badge badge-converted">Convertida</span>',exhausted:'<span class="badge badge-exhausted">Esgotada</span>',cancelled:'<span class="badge badge-cancelled">Cancelada</span>'};
+const JB={active:'<span class="badge badge-active">Ativa</span>',paused:'<span class="badge badge-paused">Pausada</span>',completed:'<span class="badge badge-completed">Completa</span>',opted_out:'<span class="badge badge-opted_out">Opt-out</span>',suporte:'<span class="badge badge-cancelled">Suporte</span>'};
+const TB={quente:'<span class="badge temp-quente">Quente</span>',morno:'<span class="badge temp-morno">Morno</span>',frio:'<span class="badge temp-frio">Frio</span>'};
+const TKB={high:'<span class="badge ticket-high">High</span>',low:'<span class="badge ticket-low">Low</span>'};
+const SLUGS={capcut_wow:'CapCut Wow',conteudo_wow:'Conteúdo Wow',feed_wow:'Feed Wow',formacao_ddi:'Formação DDI',manual_ddi:'Manual DDI',meu_primeiro_infoproduto:'MPI',combo_wow:'Combo Wow',diagnostico:'Diagnóstico',kasulo:'Kasulo'};
+let recPg=1,recTp=1,jPg=1,jTp=1,charts={},currentTab='rec',journeyLoaded=false;
 
-let currentPage = 1, totalPages = 1;
-let charts = {};
+function fmtC(c){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((c||0)/100)}
+function fmtD(iso){if(!iso)return'–';return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}
+function fmtDy(d){if(!d)return'';const[,m,dd]=d.split('-');return`${dd}/${m}`}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function ini(n){return String(n).split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?'}
+async function F(url){try{const r=await fetch(url);if(!r.ok)return null;return await r.json()}catch(e){return null}}
+function lc(mx){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11},boxWidth:10,padding:16}}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#94a3b8',font:{size:11}},border:{display:false}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#94a3b8',font:{size:11}},border:{display:false},max:mx}}}}
 
-// ── Init ─────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => { setDefaultDates(); loadDashboard(); });
+function switchTab(tab){currentTab=tab;document.querySelectorAll('.tab-btn').forEach((b,i)=>{b.classList.toggle('active',(tab==='rec'&&i===0)||(tab==='journey'&&i===1))});document.getElementById('tab-rec').classList.toggle('active',tab==='rec');document.getElementById('tab-journey').classList.toggle('active',tab==='journey');if(tab==='journey'&&!journeyLoaded){journeyLoaded=true;loadJourney()}}
 
-function setDefaultDates() {
-  // Abre sempre com o dia de hoje (início = fim = hoje).
-  const t = new Date();
-  document.getElementById('end_date').value   = fmtDate(t);
-  document.getElementById('start_date').value = fmtDate(t);
-}
-function fmtDate(d) { return d.toISOString().split('T')[0]; }
-function scrollToTable() { document.getElementById('sessions-section').scrollIntoView({behavior:'smooth'}); }
-function scrollToSection(id) { document.getElementById(id).scrollIntoView({behavior:'smooth'}); }
+// RECOVERY
+async function loadRec(){
+const s=await F('/dashboard/stats');if(!s)return;
+document.getElementById('rec-kpi-cards').innerHTML=`<div class="glass-panel" style="padding:24px"><div class="kpi-label">Sessões</div><div class="kpi-value">${s.total_sessions}</div><div class="sub" style="color:#0056D2">+${s.active||0} ativas</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Convertidas</div><div class="kpi-value">${s.converted}</div><div class="sub" style="color:#10b981">${s.conversion_rate||0}%</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Receita Total</div><div class="kpi-value">${fmtC(s.total_revenue_cents)}</div><div class="sub" style="color:#64748b">${s.messages_sent} msgs</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Recuperada</div><div class="kpi-value">${fmtC(s.recovered_cents)}</div><div class="sub" style="color:#3b82f6">${s.total_revenue_cents>0?Math.round(s.recovered_cents/s.total_revenue_cents*100):0}%</div></div>`;
+const d=await F('/dashboard/daily');if(d){if(charts.daily)charts.daily.destroy();charts.daily=new Chart(document.getElementById('chartDaily').getContext('2d'),{type:'line',data:{labels:d.map(x=>fmtDy(x.day)),datasets:[{label:'Sessões',data:d.map(x=>x.sessions),borderColor:'#0056D2',backgroundColor:'rgba(0,86,210,.06)',fill:true,tension:.4,pointRadius:3},{label:'Convertidas',data:d.map(x=>x.converted),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.06)',fill:true,tension:.4,pointRadius:3}]},options:lc()})}
+const ps=await F('/dashboard/product-stats');if(ps){if(charts.products)charts.products.destroy();charts.products=new Chart(document.getElementById('chartProducts').getContext('2d'),{type:'bar',data:{labels:ps.map(x=>PRODUCT_NAMES[x.template_prefix]||x.template_prefix),datasets:[{label:'Total',data:ps.map(x=>x.total),backgroundColor:'rgba(0,86,210,.15)',borderRadius:6},{label:'Convertidas',data:ps.map(x=>x.converted),backgroundColor:'rgba(16,185,129,.7)',borderRadius:6}]},options:lc()})}
+const fn=await F('/dashboard/funnel');if(fn){if(charts.funnel)charts.funnel.destroy();charts.funnel=new Chart(document.getElementById('chartFunnel').getContext('2d'),{type:'bar',data:{labels:fn.map(x=>`Msg ${x.message_number}`),datasets:[{label:'Conversões',data:fn.map(x=>x.converted),backgroundColor:['rgba(0,86,210,.8)','rgba(16,185,129,.8)','rgba(99,102,241,.8)'],borderRadius:8}]},options:lc()})}
+await loadRecTbl()}
+async function loadRecTbl(){const d=await F(`/dashboard/sessions?page=${recPg}&limit=20`);if(!d)return;recTp=d.pages;document.getElementById('rec-pagination').textContent=`Página ${d.page} de ${d.pages}`;document.getElementById('rec-tbody').innerHTML=(d.data||[]).map(s=>`<tr><td><strong>${esc(s.full_name||'–')}</strong><br><span style="font-size:11px;color:#94a3b8">${esc(s.email||'–')}</span></td><td>${PRODUCT_NAMES[s.template_prefix]||s.product_name}</td><td>${s.platform==='kiwify'?'<span class="badge badge-kiwify">Kiwify</span>':'<span class="badge badge-assiny">Assiny</span>'}</td><td>${SB[s.status]||s.status}</td><td>${s.amount_cents?fmtC(s.amount_cents):'–'}</td><td>${fmtD(s.created_at)}</td></tr>`).join('');const rs=await F('/dashboard/sessions?page=1&limit=6');if(rs)document.getElementById('recent-sessions').innerHTML=(rs.data||[]).slice(0,6).map(s=>`<div class="glass-panel" style="padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#0056D2">${ini(s.full_name||'?')}</div><div style="flex:1"><div style="font-size:13px;font-weight:700">${esc(s.full_name||'–')}</div><div style="font-size:12px;color:#0056D2">${PRODUCT_NAMES[s.template_prefix]||s.product_name}</div></div></div>`).join('')}
+function recPage(d){const n=recPg+d;if(n<1||n>recTp)return;recPg=n;loadRecTbl()}
 
-// ── Filters ──────────────────────────────────────────────────────────────────
-function getFilters() {
-  return {
-    start_date: document.getElementById('start_date').value,
-    end_date:   document.getElementById('end_date').value,
-    platform:   document.getElementById('platform').value,
-    product:    document.getElementById('product').value,
-    status:     document.getElementById('status').value,
-    email:      document.getElementById('email').value,
-  };
-}
-function buildParams(extra={}) {
-  const p = new URLSearchParams();
-  Object.entries({...getFilters(),...extra}).forEach(([k,v])=>{ if(v) p.append(k,v); });
-  return p.toString();
-}
-function applyFilters() { currentPage=1; loadDashboard(); }
-function clearFilters() {
-  ['platform','product','status'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('email').value='';
-  setDefaultDates(); applyFilters();
-}
-function changePage(d) {
-  const n = currentPage+d;
-  if(n<1||n>totalPages) return;
-  currentPage=n; loadSessions();
-}
+// JOURNEY
+async function loadJourney(){await Promise.all([loadJStats(),loadJInsights(),loadJProducts(),loadJourneyLeads()])}
+async function loadJStats(){const s=await F('/dashboard/journey/stats');if(!s)return;document.getElementById('j-kpi-1').innerHTML=`<div class="glass-panel" style="padding:24px"><div class="kpi-label">Jornadas Ativas</div><div class="kpi-value">${s.active}</div><div class="sub" style="color:#0056D2">${s.paused} pausadas</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Total Jornadas</div><div class="kpi-value">${s.total_journeys}</div><div class="sub" style="color:#64748b">${s.completed} completas</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Mensagens Enviadas</div><div class="kpi-value">${s.total_messages_sent}</div><div class="sub" style="color:#10b981">${s.completion_rate}% conclusão</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Suporte / Opt-out</div><div class="kpi-value">${s.suporte+s.opted_out}</div><div class="sub" style="color:#ef4444">${s.suporte} sup / ${s.opted_out} out</div></div>`}
+async function loadJInsights(){const i=await F('/dashboard/journey/insights');if(!i)return;document.getElementById('j-kpi-2').innerHTML=`<div class="glass-panel" style="padding:24px"><div class="kpi-label">Leads Analisados</div><div class="kpi-value">${i.total_analyzed}</div><div class="sub" style="color:#7c3aed">GPT-4.1 Mini</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Quentes</div><div class="kpi-value" style="color:#ef4444">${i.temperatura.quente}</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">High Ticket</div><div class="kpi-value" style="color:#7c3aed">${i.ticket.high}</div></div>`;if(charts.temp)charts.temp.destroy();charts.temp=new Chart(document.getElementById('chartTemp').getContext('2d'),{type:'doughnut',data:{labels:['Quente','Morno','Frio'],datasets:[{data:[i.temperatura.quente,i.temperatura.morno,i.temperatura.frio],backgroundColor:['#ef4444','#f59e0b','#3b82f6'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{padding:16,font:{size:11}}}}}})}
+async function loadJProducts(){const p=await F('/dashboard/journey/products');if(!p||!p.length)return;if(charts.jprod)charts.jprod.destroy();charts.jprod=new Chart(document.getElementById('chartJourneyProducts').getContext('2d'),{type:'bar',indexAxis:'y',data:{labels:p.map(x=>SLUGS[x.product]||x.product),datasets:[{label:'Jornadas',data:p.map(x=>x.journeys),backgroundColor:'rgba(0,86,210,.6)',borderRadius:4},{label:'Compras',data:p.map(x=>x.purchases),backgroundColor:'rgba(16,185,129,.6)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11},boxWidth:10}}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:11}}}}}})}
+async function loadJourneyLeads(){const p={page:jPg,limit:20};const s=document.getElementById('j-search').value.trim();if(s)p.search=s;const st=document.getElementById('j-state').value;if(st)p.state=st;const t=document.getElementById('j-temp').value;if(t)p.temperatura=t;const tk=document.getElementById('j-ticket').value;if(tk)p.ticket=tk;const qs=new URLSearchParams(p).toString();const d=await F('/dashboard/journey/leads?'+qs);if(!d)return;jTp=d.pages;document.getElementById('j-count').textContent=`${d.total} leads`;document.getElementById('j-pagination').textContent=`Página ${d.page} de ${d.pages}`;document.getElementById('j-tbody').innerHTML=(d.data||[]).map(l=>{const tags=(l.tags||[]).slice(0,3).map(t=>`<span class="badge badge-active" style="margin:1px;font-size:10px">${t}</span>`).join('')||'–';const prods=(l.purchased_products||[]).slice(0,2).map(p=>SLUGS[p]||p).join(', ')||'–';return`<tr class="lead-row" onclick="tLead('${l.phone}')"><td><strong>${esc(l.full_name||'–')}</strong></td><td>${l.phone}</td><td>${JB[l.status]||l.status}</td><td>${TB[l.temperatura]||'<span style="color:#94a3b8">–</span>'}</td><td>${TKB[l.ticket]||'<span style="color:#94a3b8">–</span>'}</td><td>${prods}</td><td>${fmtD(l.last_response_at)}</td></tr><tr id="d-${l.phone}" class="lead-detail" style="display:none"><td colspan="7"><div style="display:flex;gap:24px;flex-wrap:wrap"><div style="flex:1;min-width:180px"><strong>Dores:</strong><p style="font-size:13px;color:#475569;margin-top:4px">${(l.dores||[]).join(', ')||'Nenhuma registrada'}</p></div><div style="flex:1;min-width:180px"><strong>Ambições:</strong><p style="font-size:13px;color:#475569;margin-top:4px">${(l.ambicoes||[]).join(', ')||'Nenhuma registrada'}</p></div><div style="flex:1;min-width:180px"><strong>Perfil:</strong><p style="font-size:13px;color:#475569;margin-top:4px">${esc(l.perfil||'Não analisado')}</p></div><div style="flex:1;min-width:150px"><strong>Tags:</strong><div style="margin-top:4px">${tags}</div><div style="margin-top:8px"><strong>D+${l.day_offset||0}</strong> · ${STATE_LABELS[l.current_state]||l.current_state}</div></div></div></td></tr>`}).join('')}
+function tLead(p){const r=document.getElementById('d-'+p);if(r)r.style.display=r.style.display==='none'?'':''}
+function jPage(d){const n=jPg+d;if(n<1||n>jTp)return;jPg=n;loadJourneyLeads()}
 
-// ── Main ─────────────────────────────────────────────────────────────────────
-async function loadDashboard() {
-  await Promise.all([loadStats(), loadFunnel(), loadProductStats(), loadDaily(), loadSessions(), loadCosts()]);
-  const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('last-updated').textContent = 'Atualizado às ' + now;
-  document.getElementById('footer-updated').textContent = '© The Differs Company · ' + now;
-}
-
-// ── Stats ─────────────────────────────────────────────────────────────────────
-async function loadStats() {
-  const d = await fetchJSON('/dashboard/stats?'+buildParams());
-  if(!d) return;
-  const rate = d.conversion_rate || 0;
-  const recPct = d.total_revenue_cents > 0
-    ? Math.round(d.recovered_cents / d.total_revenue_cents * 100)
-    : 0;
-  document.getElementById('kpi-cards').innerHTML = `
-    ${kpiCard('Sessões Abertas',   d.total_sessions,               'analytics',   '+'+d.active+' ativas',              rate,   'text-primary',      'Total de sessões de recuperação iniciadas no período — inclui ativas, convertidas, esgotadas e canceladas.')}
-    ${kpiCard('Convertidas',       d.converted,                    'trending_up',  rate+'% de conversão',              rate,   'text-emerald-600',  'Sessões em que o contato comprou após receber a sequência. A taxa considera só sessões finalizadas (convertidas/esgotadas/canceladas), excluindo as ainda ativas.')}
-    ${kpiCard('Receita Total',     fmtCurrency(d.total_revenue_cents), 'account_balance', d.messages_sent+' msgs enviadas', 100, 'text-slate-500', 'Soma do valor de todas as sessões do período, independente de status — representa o potencial de recuperação.')}
-    ${kpiCard('Receita Recuperada',fmtCurrency(d.recovered_cents), 'payments',    recPct+'% da receita total',         recPct, 'text-blue-600',     'Valor efetivamente recuperado — soma apenas das sessões com status convertida.')}
-  `;
-}
-
-function kpiCard(label, value, icon, sub, barPct, subColor, tooltip) {
-  const tipEl = tooltip ? `<span class="tip" data-tip="${tooltip}">?</span>` : '';
-  return `
-    <div class="glass-panel p-8 rounded-lg relative group">
-      <div class="absolute top-0 right-0 p-5 text-slate-100 group-hover:text-slate-200 transition-colors pointer-events-none select-none">
-        <span class="material-symbols-outlined text-[56px]">${icon}</span>
-      </div>
-      <p class="text-xs font-bold text-slate-400 tracking-[0.1em] mb-3 uppercase flex items-center gap-1 pr-16">${label}${tipEl}</p>
-      <div class="flex items-baseline gap-2 flex-wrap pr-16">
-        <h4 class="text-3xl font-black text-slate-900 leading-none">${value}</h4>
-        <span class="${subColor} text-xs font-semibold">${sub}</span>
-      </div>
-      <div class="mt-5 w-full bg-slate-100 h-1 rounded-full">
-        <div class="h-full bg-primary rounded-full transition-all duration-700" style="width:${Math.min(100,barPct)}%"></div>
-      </div>
-    </div>`;
-}
-
-// ── Recent Sessions ───────────────────────────────────────────────────────────
-async function loadRecentSessions(sessions) {
-  const el = document.getElementById('recent-sessions');
-  if(!sessions || !sessions.length) {
-    el.innerHTML = '<p class="text-center text-slate-400 text-sm py-8">Nenhuma sessão encontrada</p>';
-    return;
-  }
-  el.innerHTML = sessions.slice(0,6).map(s => {
-    const initials = getInitials(s.full_name || s.email || '?');
-    const dotColor = STATUS_DOT_COLOR[s.status] || 'bg-slate-300';
-    const product  = PRODUCT_NAMES[s.template_prefix] || s.product_name;
-    const action   = s.status==='converted' ? 'converteu' : s.status==='active' ? 'em sequência' : s.status;
-    return `
-      <div class="glass-panel p-4 rounded-xl flex items-center gap-4 hover:bg-white transition-all cursor-pointer">
-        <div class="relative flex-shrink-0">
-          <div class="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-sm">${initials}</div>
-          <div class="absolute -bottom-0.5 -right-0.5 w-4 h-4 ${dotColor} rounded-full border-2 border-white"></div>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm text-slate-900 font-bold truncate">${esc(s.full_name||'–')} <span class="font-normal text-slate-500">${action}</span></p>
-          <p class="text-xs text-primary font-semibold truncate">${product}</p>
-        </div>
-        <span class="text-[10px] font-bold text-slate-400 flex-shrink-0">${timeAgo(s.created_at)}</span>
-      </div>`;
-  }).join('');
-}
-
-// ── Daily Chart ───────────────────────────────────────────────────────────────
-async function loadDaily() {
-  const data = await fetchJSON('/dashboard/daily?'+buildParams());
-  if(!data) return;
-  const labels    = data.map(d=>fmtDayLabel(d.day));
-  const sessions  = data.map(d=>d.sessions);
-  const converted = data.map(d=>d.converted);
-
-  if(charts.daily) charts.daily.destroy();
-  const ctx = document.getElementById('chartDaily').getContext('2d');
-  charts.daily = new Chart(ctx, {
-    type:'line',
-    data:{
-      labels,
-      datasets:[
-        { label:'Sessões', data:sessions, borderColor:'#0056D2', backgroundColor:'rgba(0,86,210,0.06)', fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#0056D2', borderWidth:2 },
-        { label:'Convertidas', data:converted, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.06)', fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#10b981', borderWidth:2 },
-      ],
-    },
-    options: lightChartOptions(),
-  });
-}
-
-// ── Product Stats ─────────────────────────────────────────────────────────────
-async function loadProductStats() {
-  const data = await fetchJSON('/dashboard/product-stats?'+buildParams());
-  if(!data) return;
-  const labels    = data.map(d=>PRODUCT_NAMES[d.template_prefix]||d.template_prefix);
-  const totals    = data.map(d=>d.total);
-  const converted = data.map(d=>d.converted);
-
-  if(charts.products) charts.products.destroy();
-  const ctx = document.getElementById('chartProducts').getContext('2d');
-  charts.products = new Chart(ctx, {
-    type:'bar',
-    data:{
-      labels,
-      datasets:[
-        { label:'Total',data:totals,backgroundColor:'rgba(0,86,210,0.15)',borderColor:'rgba(0,86,210,0.4)',borderWidth:1,borderRadius:6,borderSkipped:false },
-        { label:'Convertidas',data:converted,backgroundColor:'rgba(16,185,129,0.7)',borderColor:'#10b981',borderWidth:1,borderRadius:6,borderSkipped:false },
-      ],
-    },
-    options: lightChartOptions(),
-  });
-}
-
-// ── Funnel ────────────────────────────────────────────────────────────────────
-async function loadFunnel() {
-  const data = await fetchJSON('/dashboard/funnel?'+buildParams());
-  if(!data) return;
-  const labels = data.map(d=>`Mensagem ${d.message_number}`);
-  const values = data.map(d=>d.converted);
-
-  if(charts.funnel) charts.funnel.destroy();
-  const ctx = document.getElementById('chartFunnel').getContext('2d');
-  charts.funnel = new Chart(ctx, {
-    type:'bar',
-    data:{
-      labels,
-      datasets:[{
-        label:'Conversões', data:values,
-        backgroundColor:['rgba(0,86,210,0.8)','rgba(16,185,129,0.8)','rgba(99,102,241,0.8)'],
-        borderRadius:8, borderSkipped:false,
-      }],
-    },
-    options: lightChartOptions({ suggestedMax: Math.max(...values,1)+1 }),
-  });
-}
-
-// ── Table ─────────────────────────────────────────────────────────────────────
-async function loadSessions() {
-  const data = await fetchJSON('/dashboard/sessions?'+buildParams({page:currentPage,limit:20}));
-  if(!data) return;
-  await loadRecentSessions(data.data);
-  renderTable(data);
-}
-
-function renderTable({data,total,page,pages}) {
-  totalPages = pages;
-  document.getElementById('table-count').textContent = `${total} sessão${total!==1?'ões':''} encontrada${total!==1?'s':''}`;
-  const tbody = document.getElementById('sessions-tbody');
-
-  if(!data.length) {
-    tbody.innerHTML='<tr><td colspan="9" class="text-center py-12 text-slate-400">Nenhuma sessão encontrada</td></tr>';
-  } else {
-    tbody.innerHTML = data.map(s=>`
-      <tr>
-        <td>
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">${getInitials(s.full_name||s.email||'?')}</div>
-            <div>
-              <p class="font-semibold text-slate-800 text-xs">${esc(s.full_name||'–')}</p>
-              <p class="text-slate-400 text-xs">${esc(s.email||'–')}</p>
-            </div>
-          </div>
-        </td>
-        <td class="font-semibold text-slate-700 text-xs">${PRODUCT_NAMES[s.template_prefix]||s.product_name}</td>
-        <td>${PLATFORM_BADGE[s.platform]||s.platform}</td>
-        <td>${TRIGGER_BADGE[s.trigger_event]||s.trigger_event}</td>
-        <td>${renderJourney(s.messages_sent,s.status)}</td>
-        <td>${STATUS_BADGE[s.status]||s.status}</td>
-        <td class="font-mono text-xs font-semibold text-slate-700">${s.amount_cents?fmtCurrency(s.amount_cents):'–'}</td>
-        <td class="text-slate-400 text-xs">${fmtDateTime(s.created_at)}</td>
-        <td class="text-xs">${s.converted_at?'<span class="text-emerald-600 font-semibold">'+fmtDateTime(s.converted_at)+'</span>':'<span class="text-slate-300">–</span>'}</td>
-      </tr>`).join('');
-  }
-
-  document.getElementById('pagination-info').textContent=`Página ${page} de ${pages} · ${total} registros`;
-  document.getElementById('btn-prev').disabled = page<=1;
-  document.getElementById('btn-next').disabled = page>=pages;
-}
-
-function renderJourney(sent,status) {
-  let dots='';
-  for(let i=1;i<=3;i++) {
-    if(i<=sent) {
-      const color=(status==='converted'&&i===sent)?'bg-emerald-500':'bg-primary';
-      dots+=`<span class="dot ${color}"></span>`;
-    } else {
-      dots+=`<span class="dot bg-slate-200"></span>`;
-    }
-  }
-  const icon = status==='converted'?' <span class="text-xs">💰</span>':'';
-  return `<div class="flex items-center gap-1.5">${dots}${icon}</div>`;
-}
-
-// ── Chart helper ──────────────────────────────────────────────────────────────
-function lightChartOptions({suggestedMax}={}) {
-  return {
-    responsive:true, maintainAspectRatio:false,
-    plugins:{
-      legend:{ labels:{ color:'#94a3b8', font:{size:11,weight:'600'}, boxWidth:10, padding:16 } },
-      tooltip:{
-        backgroundColor:'#fff', borderColor:'rgba(0,0,0,0.08)', borderWidth:1,
-        titleColor:'#111827', bodyColor:'#64748b', padding:12, cornerRadius:10,
-        boxShadow:'0 4px 20px rgba(0,0,0,0.08)',
-      },
-    },
-    scales:{
-      x:{ grid:{color:'rgba(0,0,0,0.04)',drawBorder:false}, ticks:{color:'#94a3b8',font:{size:11}}, border:{display:false} },
-      y:{ grid:{color:'rgba(0,0,0,0.04)',drawBorder:false}, ticks:{color:'#94a3b8',font:{size:11}}, border:{display:false}, suggestedMax },
-    },
-  };
-}
-
-// ── Costs ─────────────────────────────────────────────────────────────────────
-const MSG_COST = 0.35; // R$ por mensagem — fallback estimado (usado só sem custo real)
-
-async function loadCosts() {
-  const [stats, daily, cost] = await Promise.all([
-    fetchJSON('/dashboard/stats?' + buildParams()),
-    fetchJSON('/dashboard/daily?' + buildParams()),
-    fetchJSON('/cost?' + buildParams()),
-  ]);
-  if (!stats || !daily) return;
-
-  const totalMsgs   = stats.messages_sent || 0;
-  const converted   = stats.converted || 0;
-
-  // Custo REAL cobrado pela Meta (USD) quando disponível; senão, estimativa.
-  const hasReal     = cost && cost.total_cost > 0;
-  const rate        = (cost && cost.usd_brl_rate) || 3.5; // só p/ exibição
-  const totalCost   = hasReal ? cost.total_cost_brl : totalMsgs * MSG_COST; // em R$
-  const totalUsd    = hasReal ? cost.total_cost : null;
-  const cpa         = converted > 0 ? totalCost / converted : null; // cost per acquisition
-
-  const totalSub    = hasReal
-    ? `US$ ${totalUsd.toFixed(2)} · real (Meta) @ R$${rate.toFixed(2)}`
-    : totalMsgs + ' msgs × R$ 0,35 (estimado)';
-  const totalTip    = hasReal
-    ? `Custo REAL cobrado pela Meta no período (US$ ${totalUsd.toFixed(2)}), convertido a R$ ${rate.toFixed(2)}/US$. Valor da conta toda — a Meta não separa custo por produto/plataforma.`
-    : 'Estimativa: nº de mensagens × R$ 0,35. Configure META_WABA_ID para o custo real da Meta.';
-
-  document.getElementById('cost-kpi-cards').innerHTML = `
-    ${costKpiCard('Total Gasto', fmtCurrency(totalCost * 100), 'receipt_long', totalSub, 'text-amber-600', totalTip)}
-    ${costKpiCard('Custo por Conversão', cpa !== null ? fmtCurrency(cpa * 100) : '–', 'auto_graph', converted + ' conversões', 'text-indigo-500',
-      'Quanto custou, em média, cada venda recuperada. Total gasto ÷ sessões convertidas.')}
-    ${costKpiCard('Custo / Receita', stats.recovered_cents > 0 ? (totalCost / (stats.recovered_cents / 100) * 100).toFixed(1) + '%' : '–', 'percent', 'do valor recuperado', 'text-rose-500',
-      'Proporção do custo de mensagens em relação à receita efetivamente recuperada no período.')}
-  `;
-
-  // Daily cost chart — usa custo real por dia (R$) quando houver, senão estimativa.
-  const byDay     = (cost && cost.by_day) || {};
-  const labels    = daily.map(d => fmtDayLabel(d.day));
-  const costData  = daily.map(d => hasReal
-    ? +(((byDay[d.day] || 0) * rate)).toFixed(2)
-    : +((d.messages_sent || 0) * MSG_COST).toFixed(2));
-
-  if (charts.costs) charts.costs.destroy();
-  const ctx = document.getElementById('chartCosts').getContext('2d');
-  charts.costs = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Custo (R$)', data: costData,
-        backgroundColor: 'rgba(251,191,36,0.5)',
-        borderColor: '#f59e0b',
-        borderWidth: 1, borderRadius: 6, borderSkipped: false,
-      }],
-    },
-    options: {
-      ...lightChartOptions(),
-      plugins: {
-        ...lightChartOptions().plugins,
-        tooltip: {
-          ...lightChartOptions().plugins.tooltip,
-          callbacks: {
-            label: ctx => ' R$ ' + ctx.parsed.y.toFixed(2),
-          },
-        },
-      },
-    },
-  });
-}
-
-function costKpiCard(label, value, icon, sub, subColor, tooltip) {
-  const tipEl = tooltip ? `<span class="tip" data-tip="${tooltip}">?</span>` : '';
-  return `
-    <div class="glass-panel p-8 rounded-lg relative group">
-      <div class="absolute top-0 right-0 p-5 text-amber-50 group-hover:text-amber-100 transition-colors pointer-events-none select-none">
-        <span class="material-symbols-outlined text-[56px]">${icon}</span>
-      </div>
-      <p class="text-xs font-bold text-slate-400 tracking-[0.1em] mb-3 uppercase flex items-center gap-1 pr-16">${label}${tipEl}</p>
-      <div class="flex items-baseline gap-2 flex-wrap pr-16">
-        <h4 class="text-3xl font-black text-slate-900 leading-none">${value}</h4>
-        <span class="${subColor} text-xs font-semibold">${sub}</span>
-      </div>
-    </div>`;
-}
-
-// ── Utils ─────────────────────────────────────────────────────────────────────
-async function fetchJSON(url) {
-  try { const r=await fetch(url); if(!r.ok) throw new Error(); return await r.json(); }
-  catch(e) { console.error('fetchJSON error:', url, e); return null; }
-}
-function fmtCurrency(c) {
-  return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((c||0)/100);
-}
-function fmtDateTime(iso) {
-  if(!iso) return '–';
-  return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-}
-function fmtDayLabel(d) { if(!d) return ''; const [,m,dd]=d.split('-'); return `${dd}/${m}`; }
-function getInitials(n) { return String(n).split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?'; }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function timeAgo(iso) {
-  if(!iso) return '–';
-  const diff = (Date.now()-new Date(iso).getTime())/1000;
-  if(diff<60)   return Math.floor(diff)+'s atrás';
-  if(diff<3600) return Math.floor(diff/60)+'m atrás';
-  if(diff<86400)return Math.floor(diff/3600)+'h atrás';
-  return Math.floor(diff/86400)+'d atrás';
-}
+// INIT
+document.addEventListener('DOMContentLoaded',()=>{
+document.getElementById('j-state').innerHTML='<option value="">Todos estados</option>'+Object.entries(STATE_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+loadRec();document.getElementById('blocker').style.display='none';
+setInterval(()=>{document.getElementById('last-updated').textContent='Atualizado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})},30000)});
 </script>
 </body>
 </html>
