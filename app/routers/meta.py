@@ -104,14 +104,14 @@ async def receive_webhook(
 
 
 async def _handle_incoming_message(msg: dict) -> None:
-    """Extract phone, text, and button from an incoming WhatsApp message."""
+    """Extract phone, text, and button from an incoming WhatsApp message.
+    Routes to journey engine AND/OR Júlia agent depending on context."""
     from_number = msg.get("from")
     if not from_number:
         return
 
     phone = normalize_phone(from_number)
     msg_type = msg.get("type", "unknown")
-    msg_id = msg.get("id")
 
     button_text: str | None = None
     text_body: str | None = None
@@ -129,23 +129,69 @@ async def _handle_incoming_message(msg: dict) -> None:
             button_text = interactive.get("button_reply", {}).get("title", "")
             logger.info(f"Incoming BUTTON_REPLY from {phone}: {button_text}")
         elif int_type == "list_reply":
-            # List reply — treat as button
             button_text = interactive.get("list_reply", {}).get("title", "")
             logger.info(f"Incoming LIST_REPLY from {phone}: {button_text}")
     else:
         logger.debug(f"Ignoring message type={msg_type} from {phone}")
         return
 
-    # Feed into journey engine
+    # Always process through journey engine first (updates state/tags)
+    journey_result = None
     try:
-        result = await process_response(
+        journey_result = await process_response(
             phone=phone,
             button_text=button_text,
             text_body=text_body,
         )
-        logger.info(f"Journey response processed for {phone}: {result.get('transition', 'no_change')}")
+        logger.info(f"Journey: {phone} → {journey_result.get('transition', 'no_change')}")
     except Exception:
         logger.exception(f"Error processing journey response for {phone}")
+
+    # Determine if we need the AI agent to reply
+    needs_agent = _should_call_agent(journey_result, button_text)
+
+    if needs_agent and text_body:
+        await _call_agent_and_reply(phone=phone, message=text_body)
+    elif needs_agent and button_text:
+        await _call_agent_and_reply(phone=phone, message=button_text)
+
+
+def _should_call_agent(journey_result: dict | None, button_text: str | None) -> bool:
+    """Determine if this message needs Júlia's AI response."""
+    if not journey_result:
+        return True  # no journey → agent handles
+
+    action = journey_result.get("action", "")
+
+    # Journey engine explicitly requests human/agent handoff
+    if action in ("human_handoff", "continue_flow"):
+        return True
+
+    # If journey says "stop" (suporte, opted_out), don't call agent
+    if action == "stop":
+        return False
+
+    # For open questions (no buttons), always engage agent
+    if not button_text:
+        return True
+
+    return False
+
+
+async def _call_agent_and_reply(phone: str, message: str) -> None:
+    """Call Júlia agent and send the reply via WhatsApp."""
+    from app.agent.engine import julia_reply
+    from app.services.whatsapp import send_text
+
+    try:
+        result = await julia_reply(phone=phone, message=message)
+        reply = result.get("reply", "")
+
+        if reply:
+            await send_text(phone=phone, body=reply)
+            logger.info(f"Agent reply sent to {phone}: {reply[:80]}...")
+    except Exception:
+        logger.exception(f"Error calling agent for {phone}")
 
 
 async def _handle_status_update(status: dict) -> None:

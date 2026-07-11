@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     meta_app_secret: str = ""
     meta_verify_token: str = ""
 
+    # OpenAI — Júlia agent (GPT-4.1)
+    openai_api_key: str = ""
+
+    # Redis — Júlia agent session memory
+    redis_url: str = "redis://localhost:6379/0"
+
     # Supabase
     supabase_url: str
     supabase_key: str

@@ -87,3 +87,42 @@ async def send_template(
 
     logger.info(f"WhatsApp sent template={template_name} to={phone} id={data}")
     return data
+
+
+async def send_text(phone: str, body: str) -> dict:
+    """
+    Send a free-text WhatsApp message (not a template).
+    Used by the Júlia agent for natural conversations.
+
+    Raises WhatsAppSendError (with .transient) on failure.
+    """
+    url = (
+        f"https://graph.facebook.com/{settings.meta_api_version}"
+        f"/{settings.meta_phone_number_id}/messages"
+    )
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": phone,
+        "type": "text",
+        "text": {"body": body},
+    }
+    headers = {
+        "Authorization": f"Bearer {settings.meta_access_token}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+    except httpx.HTTPStatusError as exc:
+        status = exc.response.status_code
+        transient = status in _TRANSIENT_STATUSES
+        body_text = exc.response.text[:500]
+        raise WhatsAppSendError(f"HTTP {status}: {body_text}", transient=transient) from exc
+    except httpx.TransportError as exc:
+        raise WhatsAppSendError(f"transport error: {exc}", transient=True) from exc
+
+    logger.info(f"WhatsApp text sent to={phone} len={len(body)} id={data}")
+    return data
