@@ -131,7 +131,10 @@ app.include_router(agent.router, dependencies=[Depends(verify_api_key)])
 # ── Auth (login page + token endpoint, no auth required) ──
 app.include_router(auth.router)
 
-# ── Dashboard (JWT required on all endpoints) ──
+# ── Dashboard shell (public — serves index.html, page JS handles auth) ──
+app.include_router(dashboard.public_router)
+
+# ── Dashboard data (JWT required on all endpoints) ──
 app.include_router(dashboard.router, dependencies=[Depends(verify_jwt)])
 
 

@@ -28,10 +28,15 @@ from app.database import get_supabase
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
+# Serves the static shell (index.html) — kept on a separate, unauthenticated
+# router because the browser's page navigation never carries the JWT bearer
+# token; the page's own JS reads it from localStorage for the data calls below.
+public_router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
 _STATIC_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "static")
 
 
-@router.get("/", include_in_schema=False)
+@public_router.get("/", include_in_schema=False)
 async def serve_dashboard(key: str = Query(default=None)):
     # Optional: validate ?key=xxx in URL, store in page for AJAX calls
     # Page is read-only — no sensitive ops
