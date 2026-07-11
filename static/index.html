@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Differs Company — Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -12,44 +10,48 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',-apple-system,sans-serif;background:#f1f5f9;color:#0f172a}
 main{max-width:1440px;margin:0 auto;padding:24px 32px}
-.glass-panel{background:#fff;border:1px solid rgba(0,0,0,.04);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-h3{font-size:24px;font-weight:900;letter-spacing:-.02em}
-h5{font-size:18px;font-weight:800;letter-spacing:-.01em}
+.glass{background:#fff;border:1px solid rgba(0,0,0,.04);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+h3{font-size:22px;font-weight:900;letter-spacing:-.02em}
+h5{font-size:16px;font-weight:800}
 .badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
-.badge-active{background:#dbeafe;color:#1e40af}.badge-converted{background:#d1fae5;color:#065f46}
-.badge-exhausted{background:#f1f5f9;color:#475569}.badge-cancelled{background:#fee2e2;color:#991b1b}
-.badge-paused{background:#fef3c7;color:#92400e}.badge-completed{background:#e0e7ff;color:#3730a3}
-.badge-opted_out{background:#fce7f3;color:#9d174d}.badge-kiwify{background:#e0f2fe;color:#0369a1}
-.badge-assiny{background:#fef3c7;color:#92400e}.badge-abandoned{background:#f1f5f9;color:#475569}
-.badge-waiting{background:#fef3c7;color:#92400e}.badge-refused{background:#fee2e2;color:#991b1b}
-.temp-quente{background:#fee2e2;color:#dc2626}.temp-morno{background:#fef3c7;color:#d97706}.temp-frio{background:#dbeafe;color:#2563eb}
-.ticket-high{background:#ede9fe;color:#7c3aed}.ticket-low{background:#f1f5f9;color:#64748b}
-.dot{display:inline-block;width:8px;height:8px;border-radius:50%}
+.ba{background:#dbeafe;color:#1e40af}.bc{background:#d1fae5;color:#065f46}.be{background:#f1f5f9;color:#475569}.bx{background:#fee2e2;color:#991b1b}
+.bp{background:#fef3c7;color:#92400e}.bco{background:#e0e7ff;color:#3730a3}.bo{background:#fce7f3;color:#9d174d}
+.bkiw{background:#e0f2fe;color:#0369a1}.bass{background:#fef3c7;color:#92400e}
+.tq{background:#fee2e2;color:#dc2626}.tm{background:#fef3c7;color:#d97706}.tf{background:#dbeafe;color:#2563eb}
+.th{background:#ede9fe;color:#7c3aed}.tl{background:#f1f5f9;color:#64748b}
+.tip{cursor:help;border-bottom:1px dotted #94a3b8;font-size:11px;color:#94a3b8;position:relative}
+.tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:11px;font-weight:500;padding:6px 12px;border-radius:8px;white-space:nowrap;z-index:99;pointer-events:none}
 .tab-nav{display:flex;gap:4px;margin-bottom:24px;background:#e2e8f0;border-radius:12px;padding:4px;width:fit-content}
 .tab-btn{padding:10px 24px;border:none;background:transparent;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;color:#64748b;transition:all .15s}
 .tab-btn.active{background:#fff;color:#0056D2;box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .tab-content{display:none}.tab-content.active{display:block}
-.filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
-.filter-bar input,.filter-bar select{padding:8px 14px;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:inherit;background:#fff}
-.filter-bar input:focus,.filter-bar select:focus{outline:none;border-color:#0056D2}
-.filter-bar input{min-width:220px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:20px}
+.filters input,.filters select{padding:8px 14px;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:inherit;background:#fff}
+.filters input:focus,.filters select:focus{outline:none;border-color:#0056D2}
 .btn{padding:8px 18px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
-.btn-primary{background:#0056D2;color:#fff}.btn-ghost{border:1px solid #e2e8f0;background:#fff;color:#64748b}
+.btn-p{background:#0056D2;color:#fff}.btn-p:hover{background:#0045b0}
+.btn-g{border:1px solid #e2e8f0;background:#fff;color:#64748b}.btn-g:hover{background:#f8fafc}
+.kpi-v{font-size:28px;font-weight:900}.kpi-l{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.sub{font-size:12px;font-weight:600}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+td{padding:10px 14px;font-size:13px;border-bottom:1px solid #f1f5f9}
 .lead-row{cursor:pointer}.lead-row:hover{background:#f8fafc}
-.lead-detail{background:#f8fafc;border-top:1px solid #e2e8f0}
-.kpi-value{font-size:28px;font-weight:900}.kpi-label{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
-.sub{font-size:12px;font-weight:600}table{width:100%;border-collapse:collapse}
-th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e2e8f0}
-td{padding:10px 16px;font-size:13px;border-bottom:1px solid #f1f5f9}
+.ld{background:#f8fafc;border-top:1px solid #e2e8f0}
+.kanban{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px}
+.kanban-col{flex:1;min-width:120px;text-align:center;padding:16px 12px;border-radius:12px;cursor:pointer;transition:all .15s}
+.kanban-col:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.kanban-n{font-size:32px;font-weight:900}.kanban-l{font-size:11px;font-weight:700;margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%}
+.alert-card{border-left:3px solid;padding:12px 16px;border-radius:0 12px 12px 0;font-size:13px}
 .spinner{width:40px;height:40px;border:3px solid #e2e8f0;border-top-color:#0056D2;border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
-<div id="blocker" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(241,245,249,.7);display:flex;align-items:center;justify-content:center;z-index:9999"><div class="spinner"></div></div>
 <main>
-<header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-<div><h3 style="display:inline">The Differs Company</h3><span style="margin-left:12px;font-size:12px;color:#94a3b8;font-weight:600" id="last-updated">—</span></div>
+<header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div><h3>The Differs Company</h3><span style="margin-left:10px;font-size:12px;color:#94a3b8;font-weight:600" id="updated">—</span></div>
 <button onclick="logout()" style="padding:8px 18px;border:1px solid #e2e8f0;background:#fff;border-radius:10px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer">Sair</button>
 </header>
 
@@ -58,103 +60,268 @@ td{padding:10px 16px;font-size:13px;border-bottom:1px solid #f1f5f9}
 <button class="tab-btn" onclick="switchTab('journey')">🛤️ Jornada</button>
 </div>
 
-<!-- RECOVERY TAB -->
+<!-- ════════════ RECOVERY ════════════ -->
 <div id="tab-rec" class="tab-content active">
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px" id="rec-kpi-cards"></div>
+<div class="filters" id="rec-filters"></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px" id="rec-kpi"></div>
 <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px">
-<div class="glass-panel" style="padding:24px"><h5 style="margin-bottom:16px">Visão Diária</h5><div style="height:200px"><canvas id="chartDaily"></canvas></div></div>
-<div class="glass-panel" style="padding:24px"><h5 style="margin-bottom:16px">Sessões Recentes</h5><div id="recent-sessions" style="max-height:300px;overflow-y:auto"></div></div>
+<div class="glass" style="padding:24px"><h5 style="margin-bottom:12px">Visão Diária <span class="tip" data-tip="Sessões de recuperação criadas vs. convertidas por dia. Mostra o volume de entrada e a taxa de sucesso diária.">?</span></h5><div style="height:220px"><canvas id="chDaily"></canvas></div></div>
+<div class="glass" style="padding:24px"><h5 style="margin-bottom:12px">Sessões Recentes <span class="tip" data-tip="Últimas 6 sessões de recuperação iniciadas. O círculo colorido indica o status atual.">?</span></h5><div id="rec-recent" style="max-height:300px;overflow-y:auto"></div></div>
 </div>
 <div style="display:grid;grid-template-columns:7fr 5fr;gap:16px;margin-bottom:24px">
-<div class="glass-panel" style="padding:24px"><h5 style="margin-bottom:16px">Performance por Produto</h5><div style="height:180px"><canvas id="chartProducts"></canvas></div></div>
-<div class="glass-panel" style="padding:24px"><h5 style="margin-bottom:16px">Funil de Conversão</h5><div style="height:180px"><canvas id="chartFunnel"></canvas></div></div>
+<div class="glass" style="padding:24px"><h5 style="margin-bottom:12px">Performance por Produto <span class="tip" data-tip="Compara total de sessões (barra clara) vs. convertidas (barra verde) para cada produto. Mostra quais produtos têm melhor taxa de recuperação.">?</span></h5><div style="height:200px"><canvas id="chProd"></canvas></div></div>
+<div class="glass" style="padding:24px"><h5 style="margin-bottom:12px">Funil de Conversão <span class="tip" data-tip="Após qual mensagem da sequência (1ª, 2ª ou 3ª) a compra foi realizada. Indica qual toque é mais decisivo na recuperação.">?</span></h5><div style="height:200px"><canvas id="chFun"></canvas></div></div>
 </div>
-<div class="glass-panel" style="overflow:hidden;margin-bottom:24px">
-<div style="padding:12px 20px;border-bottom:1px solid #f1f5f9"><h5>Sessões</h5></div>
-<div style="overflow-x:auto"><table><thead><tr><th>Usuário</th><th>Produto</th><th>Plataforma</th><th>Status</th><th>Valor</th><th>Criado</th></tr></thead><tbody id="rec-tbody"></tbody></table></div>
-<div style="display:flex;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9"><span id="rec-pagination" style="font-size:12px;color:#94a3b8"></span><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="recPage(-1)">←</button><button class="btn btn-ghost" onclick="recPage(1)">→</button></div></div>
+<div class="glass" style="overflow:hidden;margin-bottom:24px">
+<div style="padding:12px 20px;border-bottom:1px solid #f1f5f9"><h5>Sessões de Recuperação <span class="tip" data-tip="Tabela com todas as sessões de recuperação. Cada linha é uma tentativa de recuperar uma venda perdida. Filtros de data, plataforma, produto, status e busca por email no topo da página.">?</span></h5><span id="rec-count" style="font-size:12px;color:#94a3b8;margin-left:8px"></span></div>
+<div style="overflow-x:auto"><table><thead><tr><th>Usuário</th><th>Produto <span class="tip" data-tip="Produto que o lead abandonou ou teve pagamento recusado.">?</span></th><th>Plataforma</th><th>Evento</th><th>Jornada <span class="tip" data-tip="Bolinhas representam as 3 mensagens da sequência. Verde = mensagem que converteu. Azul = enviada. Cinza = não enviada.">?</span></th><th>Status</th><th>Valor</th><th>Criado</th></tr></thead><tbody id="rec-tb"></tbody></table></div>
+<div style="display:flex;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9"><span id="rec-pag" style="font-size:12px;color:#94a3b8"></span><div style="display:flex;gap:8px"><button class="btn btn-g" id="rec-prev" onclick="recPg(-1)">←</button><button class="btn btn-g" id="rec-next" onclick="recPg(1)">→</button></div></div>
+</div>
+<div class="glass" style="padding:24px;margin-bottom:24px">
+<h5 style="margin-bottom:16px">Valor Gasto <span class="tip" data-tip="Custo total de mensagens enviadas no período. R$ 0,35 por mensagem (estimativa). Configure META_WABA_ID para ver o custo real cobrado pela Meta em USD.">?</span></h5>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px" id="cost-kpis"></div>
+<div style="height:200px"><canvas id="chCost"></canvas></div>
 </div>
 </div>
 
-<!-- JOURNEY TAB -->
+<!-- ════════════ JOURNEY ════════════ -->
 <div id="tab-journey" class="tab-content">
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px" id="j-kpi-1"></div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px" id="j-kpi-2"></div>
+<div class="filters" id="j-filters"></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px" id="j-kpi"></div>
 
-<div class="filter-bar">
-<input type="text" id="j-search" placeholder="🔍 Buscar nome ou WhatsApp..." oninput="loadJourneyLeads()">
-<select id="j-state" onchange="loadJourneyLeads()"><option value="">Todos estados</option></select>
-<select id="j-temp" onchange="loadJourneyLeads()"><option value="">Todas temps</option><option value="quente">Quente</option><option value="morno">Morno</option><option value="frio">Frio</option></select>
-<select id="j-ticket" onchange="loadJourneyLeads()"><option value="">Todos tickets</option><option value="high">High</option><option value="low">Low</option></select>
-</div>
+<h5 style="margin-bottom:12px">Pipeline de Jornada <span class="tip" data-tip="Cada coluna representa uma etapa da jornada do aluno. O número mostra quantos alunos estão naquela etapa agora. Clique em uma coluna para filtrar a tabela abaixo.">?</span></h5>
+<div class="kanban" id="j-kanban" style="margin-bottom:24px"></div>
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px" id="j-alerts"></div>
 
 <div style="display:grid;grid-template-columns:5fr 7fr;gap:16px;margin-bottom:24px">
-<div class="glass-panel" style="padding:24px"><h5 style="margin-bottom:16px">Temperatura dos Leads</h5><div style="height:180px"><canvas id="chartTemp"></canvas></div></div>
-<div class="glass-panel" style="padding:24px"><h5 style="margin-bottom:16px">Distribuição por Produto</h5><div style="height:180px"><canvas id="chartJourneyProducts"></canvas></div></div>
+<div class="glass" style="padding:24px"><h5 style="margin-bottom:12px">Funil da Jornada <span class="tip" data-tip="Volume de alunos em cada etapa principal da jornada. Mostra onde os alunos estão concentrados e a taxa de progressão entre etapas.">?</span></h5><div style="height:200px"><canvas id="chJfun"></canvas></div></div>
+<div class="glass" style="padding:24px"><h5 style="margin-bottom:12px">Produtos na Jornada <span class="tip" data-tip="Distribuição de jornadas por produto de entrada. Barras azuis = jornadas iniciadas com esse produto. Barras verdes = total de compras desse produto.">?</span></h5><div style="height:200px"><canvas id="chJprod"></canvas></div></div>
 </div>
 
-<div class="glass-panel" style="overflow:hidden;margin-bottom:24px">
-<div style="padding:12px 20px;border-bottom:1px solid #f1f5f9"><h5 style="display:inline">Leads</h5><span id="j-count" style="font-size:12px;color:#94a3b8;margin-left:8px"></span></div>
-<div style="overflow-x:auto"><table><thead><tr><th>Nome</th><th>WhatsApp</th><th>Estado</th><th>Temp</th><th>Ticket</th><th>Produtos</th><th>Última Resposta</th></tr></thead><tbody id="j-tbody"></tbody></table></div>
-<div style="display:flex;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9"><span id="j-pagination" style="font-size:12px;color:#94a3b8"></span><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="jPage(-1)">←</button><button class="btn btn-ghost" onclick="jPage(1)">→</button></div></div>
+<div class="glass" style="overflow:hidden;margin-bottom:24px">
+<div style="padding:12px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+<h5>Leads <span class="tip" data-tip="Tabela de todos os alunos na jornada. Busque por nome ou WhatsApp. Filtre por estado, temperatura ou ticket. Clique em uma linha para ver o perfil completo do lead (dores, ambições, tags).">?</span></h5>
+<span id="j-count" style="font-size:12px;color:#94a3b8"></span>
+<input type="text" id="js" placeholder="🔍 Nome ou WhatsApp..." oninput="jLeads()" style="margin-left:auto">
+<select id="jst" onchange="jLeads()"><option value="">Estados</option></select>
+<select id="jtm" onchange="jLeads()"><option value="">Temperatura</option><option value="quente">Quente</option><option value="morno">Morno</option><option value="frio">Frio</option></select>
+<select id="jtk" onchange="jLeads()"><option value="">Ticket</option><option value="high">High</option><option value="low">Low</option></select>
+</div>
+<div style="overflow-x:auto"><table><thead><tr><th>Nome</th><th>WhatsApp</th><th>Estado <span class="tip" data-tip="Etapa atual da jornada do aluno: Ativação, Engajada, Acelerada, Fria, Completa ou Opt-out.">?</span></th><th>Temp <span class="tip" data-tip="Temperatura do lead: Quente (engajado, comprou recentemente), Morno (comprou mas está parado), Frio (sem interação). Classificado pela IA.">?</span></th><th>Ticket <span class="tip" data-tip="Potencial de ticket: High (comprou/comportamento de alto valor > R$500), Low (produtos de entrada). Classificado pela IA.">?</span></th><th>Produtos</th><th>D+</th><th>Última Resp.</th></tr></thead><tbody id="j-tb"></tbody></table></div>
+<div style="display:flex;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9"><span id="j-pag" style="font-size:12px;color:#94a3b8"></span><div style="display:flex;gap:8px"><button class="btn btn-g" id="j-prev" onclick="jPg(-1)">←</button><button class="btn btn-g" id="j-next" onclick="jPg(1)">→</button></div></div>
 </div>
 </div>
 </main>
 
 <script>
-const PRODUCT_NAMES={rec_combo_wow:'Combo Wow',rec_capcut_wow:'CapCut Wow',rec_conteudo_wow:'Conteúdo Wow',rec_mpi:'MPI'};
-const STATE_LABELS={ativacao:'Ativação',engajada:'Engajada',fria:'Trilha Fria',acel_feed:'Feed Wow',acel_conteudo:'Conteúdo Wow',acel_mpi:'MPI',acel_manual_ddi:'Manual DDI',acel_formacao_ddi:'Formação DDI',acel_diagnostico:'Diagnóstico',acel_kasulo:'Kasulo',suporte:'Suporte',paused:'Pausada',completed:'Completa',opted_out:'Opt-out'};
-const SB={active:'<span class="badge badge-active">Ativa</span>',converted:'<span class="badge badge-converted">Convertida</span>',exhausted:'<span class="badge badge-exhausted">Esgotada</span>',cancelled:'<span class="badge badge-cancelled">Cancelada</span>'};
-const JB={active:'<span class="badge badge-active">Ativa</span>',paused:'<span class="badge badge-paused">Pausada</span>',completed:'<span class="badge badge-completed">Completa</span>',opted_out:'<span class="badge badge-opted_out">Opt-out</span>',suporte:'<span class="badge badge-cancelled">Suporte</span>'};
-const TB={quente:'<span class="badge temp-quente">Quente</span>',morno:'<span class="badge temp-morno">Morno</span>',frio:'<span class="badge temp-frio">Frio</span>'};
-const TKB={high:'<span class="badge ticket-high">High</span>',low:'<span class="badge ticket-low">Low</span>'};
-const SLUGS={capcut_wow:'CapCut Wow',conteudo_wow:'Conteúdo Wow',feed_wow:'Feed Wow',formacao_ddi:'Formação DDI',manual_ddi:'Manual DDI',meu_primeiro_infoproduto:'MPI',combo_wow:'Combo Wow',diagnostico:'Diagnóstico',kasulo:'Kasulo'};
-let recPg=1,recTp=1,jPg=1,jTp=1,charts={},currentTab='rec',journeyLoaded=false;
+// ═══════════ SHARED ═══════════
+const P={rec_combo_wow:'Combo Wow',rec_capcut_wow:'CapCut Wow',rec_conteudo_wow:'Conteúdo Wow',rec_mpi:'MPI'};
+const PS={capcut_wow:'CapCut Wow',conteudo_wow:'Conteúdo Wow',feed_wow:'Feed Wow',formacao_ddi:'Formação DDI',manual_ddi:'Manual DDI',meu_primeiro_infoproduto:'MPI',combo_wow:'Combo Wow',diagnostico:'Diagnóstico',kasulo:'Kasulo'};
+const SL={ativacao:'Ativação',engajada:'Engajada',fria:'Trilha Fria',acel_feed:'Feed Wow',acel_conteudo:'Conteúdo Wow',acel_mpi:'MPI',acel_manual_ddi:'Manual DDI',acel_formacao_ddi:'Formação DDI',acel_diagnostico:'Diagnóstico',acel_kasulo:'Kasulo',suporte:'Suporte',paused:'⏸️ Pausada',completed:'✅ Completa',opted_out:'🚫 Opt-out'};
+const SB={active:'<span class="badge ba">Ativa</span>',converted:'<span class="badge bc">Convertida</span>',exhausted:'<span class="badge be">Esgotada</span>',cancelled:'<span class="badge bx">Cancelada</span>'};
+const JB={active:'<span class="badge ba">Ativa</span>',paused:'<span class="badge bp">Pausada</span>',completed:'<span class="badge bco">Completa</span>',opted_out:'<span class="badge bo">Opt-out</span>',suporte:'<span class="badge bx">Suporte</span>'};
+const TB={quente:'<span class="badge tq">Quente</span>',morno:'<span class="badge tm">Morno</span>',frio:'<span class="badge tf">Frio</span>'};
+const TKB={high:'<span class="badge th">High</span>',low:'<span class="badge tl">Low</span>'};
+let charts={},ct='rec',jl=false,rp=1,rtp=1,jp=1,jtp=1;
 
-function fmtC(c){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((c||0)/100)}
-function fmtD(iso){if(!iso)return'–';return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}
-function fmtDy(d){if(!d)return'';const[,m,dd]=d.split('-');return`${dd}/${m}`}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function ini(n){return String(n).split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?'}
-async function F(url){try{const r=await fetch(url);if(!r.ok)return null;return await r.json()}catch(e){return null}}
-function lc(mx){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11},boxWidth:10,padding:16}}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#94a3b8',font:{size:11}},border:{display:false}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#94a3b8',font:{size:11}},border:{display:false},max:mx}}}}
-
-function switchTab(tab){currentTab=tab;document.querySelectorAll('.tab-btn').forEach((b,i)=>{b.classList.toggle('active',(tab==='rec'&&i===0)||(tab==='journey'&&i===1))});document.getElementById('tab-rec').classList.toggle('active',tab==='rec');document.getElementById('tab-journey').classList.toggle('active',tab==='journey');if(tab==='journey'&&!journeyLoaded){journeyLoaded=true;loadJourney()}}
-
-// RECOVERY
-async function loadRec(){
-const s=await F('/dashboard/stats');if(!s)return;
-document.getElementById('rec-kpi-cards').innerHTML=`<div class="glass-panel" style="padding:24px"><div class="kpi-label">Sessões</div><div class="kpi-value">${s.total_sessions}</div><div class="sub" style="color:#0056D2">+${s.active||0} ativas</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Convertidas</div><div class="kpi-value">${s.converted}</div><div class="sub" style="color:#10b981">${s.conversion_rate||0}%</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Receita Total</div><div class="kpi-value">${fmtC(s.total_revenue_cents)}</div><div class="sub" style="color:#64748b">${s.messages_sent} msgs</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Recuperada</div><div class="kpi-value">${fmtC(s.recovered_cents)}</div><div class="sub" style="color:#3b82f6">${s.total_revenue_cents>0?Math.round(s.recovered_cents/s.total_revenue_cents*100):0}%</div></div>`;
-const d=await F('/dashboard/daily');if(d){if(charts.daily)charts.daily.destroy();charts.daily=new Chart(document.getElementById('chartDaily').getContext('2d'),{type:'line',data:{labels:d.map(x=>fmtDy(x.day)),datasets:[{label:'Sessões',data:d.map(x=>x.sessions),borderColor:'#0056D2',backgroundColor:'rgba(0,86,210,.06)',fill:true,tension:.4,pointRadius:3},{label:'Convertidas',data:d.map(x=>x.converted),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.06)',fill:true,tension:.4,pointRadius:3}]},options:lc()})}
-const ps=await F('/dashboard/product-stats');if(ps){if(charts.products)charts.products.destroy();charts.products=new Chart(document.getElementById('chartProducts').getContext('2d'),{type:'bar',data:{labels:ps.map(x=>PRODUCT_NAMES[x.template_prefix]||x.template_prefix),datasets:[{label:'Total',data:ps.map(x=>x.total),backgroundColor:'rgba(0,86,210,.15)',borderRadius:6},{label:'Convertidas',data:ps.map(x=>x.converted),backgroundColor:'rgba(16,185,129,.7)',borderRadius:6}]},options:lc()})}
-const fn=await F('/dashboard/funnel');if(fn){if(charts.funnel)charts.funnel.destroy();charts.funnel=new Chart(document.getElementById('chartFunnel').getContext('2d'),{type:'bar',data:{labels:fn.map(x=>`Msg ${x.message_number}`),datasets:[{label:'Conversões',data:fn.map(x=>x.converted),backgroundColor:['rgba(0,86,210,.8)','rgba(16,185,129,.8)','rgba(99,102,241,.8)'],borderRadius:8}]},options:lc()})}
-await loadRecTbl()}
-async function loadRecTbl(){const d=await F(`/dashboard/sessions?page=${recPg}&limit=20`);if(!d)return;recTp=d.pages;document.getElementById('rec-pagination').textContent=`Página ${d.page} de ${d.pages}`;document.getElementById('rec-tbody').innerHTML=(d.data||[]).map(s=>`<tr><td><strong>${esc(s.full_name||'–')}</strong><br><span style="font-size:11px;color:#94a3b8">${esc(s.email||'–')}</span></td><td>${PRODUCT_NAMES[s.template_prefix]||s.product_name}</td><td>${s.platform==='kiwify'?'<span class="badge badge-kiwify">Kiwify</span>':'<span class="badge badge-assiny">Assiny</span>'}</td><td>${SB[s.status]||s.status}</td><td>${s.amount_cents?fmtC(s.amount_cents):'–'}</td><td>${fmtD(s.created_at)}</td></tr>`).join('');const rs=await F('/dashboard/sessions?page=1&limit=6');if(rs)document.getElementById('recent-sessions').innerHTML=(rs.data||[]).slice(0,6).map(s=>`<div class="glass-panel" style="padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#0056D2">${ini(s.full_name||'?')}</div><div style="flex:1"><div style="font-size:13px;font-weight:700">${esc(s.full_name||'–')}</div><div style="font-size:12px;color:#0056D2">${PRODUCT_NAMES[s.template_prefix]||s.product_name}</div></div></div>`).join('')}
-function recPage(d){const n=recPg+d;if(n<1||n>recTp)return;recPg=n;loadRecTbl()}
-
-// JOURNEY
-async function loadJourney(){await Promise.all([loadJStats(),loadJInsights(),loadJProducts(),loadJourneyLeads()])}
-async function loadJStats(){const s=await F('/dashboard/journey/stats');if(!s)return;document.getElementById('j-kpi-1').innerHTML=`<div class="glass-panel" style="padding:24px"><div class="kpi-label">Jornadas Ativas</div><div class="kpi-value">${s.active}</div><div class="sub" style="color:#0056D2">${s.paused} pausadas</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Total Jornadas</div><div class="kpi-value">${s.total_journeys}</div><div class="sub" style="color:#64748b">${s.completed} completas</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Mensagens Enviadas</div><div class="kpi-value">${s.total_messages_sent}</div><div class="sub" style="color:#10b981">${s.completion_rate}% conclusão</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Suporte / Opt-out</div><div class="kpi-value">${s.suporte+s.opted_out}</div><div class="sub" style="color:#ef4444">${s.suporte} sup / ${s.opted_out} out</div></div>`}
-async function loadJInsights(){const i=await F('/dashboard/journey/insights');if(!i)return;document.getElementById('j-kpi-2').innerHTML=`<div class="glass-panel" style="padding:24px"><div class="kpi-label">Leads Analisados</div><div class="kpi-value">${i.total_analyzed}</div><div class="sub" style="color:#7c3aed">GPT-4.1 Mini</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">Quentes</div><div class="kpi-value" style="color:#ef4444">${i.temperatura.quente}</div></div><div class="glass-panel" style="padding:24px"><div class="kpi-label">High Ticket</div><div class="kpi-value" style="color:#7c3aed">${i.ticket.high}</div></div>`;if(charts.temp)charts.temp.destroy();charts.temp=new Chart(document.getElementById('chartTemp').getContext('2d'),{type:'doughnut',data:{labels:['Quente','Morno','Frio'],datasets:[{data:[i.temperatura.quente,i.temperatura.morno,i.temperatura.frio],backgroundColor:['#ef4444','#f59e0b','#3b82f6'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{padding:16,font:{size:11}}}}}})}
-async function loadJProducts(){const p=await F('/dashboard/journey/products');if(!p||!p.length)return;if(charts.jprod)charts.jprod.destroy();charts.jprod=new Chart(document.getElementById('chartJourneyProducts').getContext('2d'),{type:'bar',indexAxis:'y',data:{labels:p.map(x=>SLUGS[x.product]||x.product),datasets:[{label:'Jornadas',data:p.map(x=>x.journeys),backgroundColor:'rgba(0,86,210,.6)',borderRadius:4},{label:'Compras',data:p.map(x=>x.purchases),backgroundColor:'rgba(16,185,129,.6)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11},boxWidth:10}}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:11}}}}}})}
-async function loadJourneyLeads(){const p={page:jPg,limit:20};const s=document.getElementById('j-search').value.trim();if(s)p.search=s;const st=document.getElementById('j-state').value;if(st)p.state=st;const t=document.getElementById('j-temp').value;if(t)p.temperatura=t;const tk=document.getElementById('j-ticket').value;if(tk)p.ticket=tk;const qs=new URLSearchParams(p).toString();const d=await F('/dashboard/journey/leads?'+qs);if(!d)return;jTp=d.pages;document.getElementById('j-count').textContent=`${d.total} leads`;document.getElementById('j-pagination').textContent=`Página ${d.page} de ${d.pages}`;document.getElementById('j-tbody').innerHTML=(d.data||[]).map(l=>{const tags=(l.tags||[]).slice(0,3).map(t=>`<span class="badge badge-active" style="margin:1px;font-size:10px">${t}</span>`).join('')||'–';const prods=(l.purchased_products||[]).slice(0,2).map(p=>SLUGS[p]||p).join(', ')||'–';return`<tr class="lead-row" onclick="tLead('${l.phone}')"><td><strong>${esc(l.full_name||'–')}</strong></td><td>${l.phone}</td><td>${JB[l.status]||l.status}</td><td>${TB[l.temperatura]||'<span style="color:#94a3b8">–</span>'}</td><td>${TKB[l.ticket]||'<span style="color:#94a3b8">–</span>'}</td><td>${prods}</td><td>${fmtD(l.last_response_at)}</td></tr><tr id="d-${l.phone}" class="lead-detail" style="display:none"><td colspan="7"><div style="display:flex;gap:24px;flex-wrap:wrap"><div style="flex:1;min-width:180px"><strong>Dores:</strong><p style="font-size:13px;color:#475569;margin-top:4px">${(l.dores||[]).join(', ')||'Nenhuma registrada'}</p></div><div style="flex:1;min-width:180px"><strong>Ambições:</strong><p style="font-size:13px;color:#475569;margin-top:4px">${(l.ambicoes||[]).join(', ')||'Nenhuma registrada'}</p></div><div style="flex:1;min-width:180px"><strong>Perfil:</strong><p style="font-size:13px;color:#475569;margin-top:4px">${esc(l.perfil||'Não analisado')}</p></div><div style="flex:1;min-width:150px"><strong>Tags:</strong><div style="margin-top:4px">${tags}</div><div style="margin-top:8px"><strong>D+${l.day_offset||0}</strong> · ${STATE_LABELS[l.current_state]||l.current_state}</div></div></div></td></tr>`}).join('')}
-function tLead(p){const r=document.getElementById('d-'+p);if(r)r.style.display=r.style.display==='none'?'':''}
-function jPage(d){const n=jPg+d;if(n<1||n>jTp)return;jPg=n;loadJourneyLeads()}
-
-// AUTH
-function getToken(){return localStorage.getItem('ddi_token')||''}
+function T(){return localStorage.getItem('ddi_token')||''}
 function logout(){localStorage.removeItem('ddi_token');window.location.href='/login'}
-async function checkAuth(){
-const t=getToken();if(!t){window.location.href='/login';return false}
-try{const r=await fetch('/auth/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});if(!r.ok)throw new Error();return true}catch(e){logout();return false}
+async function F(url){try{const t=T();if(!t){window.location.href='/login';return null}const r=await fetch(url,{headers:{Authorization:'Bearer '+t}});if(r.status===401){logout();return null}if(!r.ok)return null;return await r.json()}catch(e){return null}}
+function fc(c){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((c||0)/100)}
+function fd(i){if(!i)return'–';return new Date(i).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}
+function fdy(d){if(!d)return'';const[,m,dd]=d.split('-');return`${dd}/${m}`}
+function es(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').reverse().replace(/>/g,';tlg&').replace(/"/g,'&quot;')}
+function ini(n){return String(n).split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?'}
+function lc(mx){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11},boxWidth:10,padding:16}}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#94a3b8',font:{size:11}},border:{display:false}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#94a3b8',font:{size:11}},border:{display:false},max:mx}}}}
+function today(){return new Date().toISOString().split('T')[0]}
+
+function kpiCard(v,l,sub,sc,icon,tip){return`<div class="glass" style="padding:20px;position:relative;overflow:hidden"><div style="position:absolute;top:0;right:0;padding:16px;color:#f1f5f9;pointer-events:none"><span class="material-symbols-outlined" style="font-size:56px">${icon}</span></div><div class="kpi-l">${l} <span class="tip" data-tip="${tip}">?</span></div><div class="kpi-v" style="position:relative;z-index:1">${v}</div><div class="sub" style="color:${sc};position:relative;z-index:1">${sub}</div></div>`}
+
+function switchTab(tab){ct=tab;document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(tab==='rec'&&i===0)||(tab==='journey'&&i===1)));document.getElementById('tab-rec').classList.toggle('active',tab==='rec');document.getElementById('tab-journey').classList.toggle('active',tab==='journey');if(tab==='journey'&&!jl){jl=true;loadJourney()}}
+
+// ═══════════ RECOVERY ═══════════
+let recStart=today(),recEnd=today(),recPlat='',recProd='',recSt='',recEm='';
+
+function recFilters(){return`start_date=${recStart}&end_date=${recEnd}${recPlat?'&platform='+recPlat:''}${recProd?'&product='+recProd:''}`}
+function buildRecFilters(){
+document.getElementById('rec-filters').innerHTML=`
+<input type="date" value="${recStart}" onchange="recStart=this.value"> até <input type="date" value="${recEnd}" onchange="recEnd=this.value">
+<select onchange="recPlat=this.value"><option value="">Plataforma</option><option value="kiwify">Kiwify</option><option value="assiny">Assiny</option></select>
+<select onchange="recProd=this.value"><option value="">Produto</option>${Object.entries(P).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select>
+<select onchange="recSt=this.value"><option value="">Status</option><option value="active">Ativa</option><option value="converted">Convertida</option><option value="exhausted">Esgotada</option><option value="cancelled">Cancelada</option></select>
+<input type="text" placeholder="🔍 Email..." onchange="recEm=this.value" style="min-width:180px">
+<button class="btn btn-p" onclick="rp=1;loadRec()">Aplicar</button>
+<button class="btn btn-g" onclick="recStart=today();recEnd=today();recPlat='';recProd='';recSt='';recEm='';rp=1;buildRecFilters();loadRec()">Limpar</button>`;
 }
 
-// INIT
-document.addEventListener('DOMContentLoaded',async ()=>{
-const ok=await checkAuth();if(!ok)return;
-document.getElementById('j-state').innerHTML='<option value="">Todos estados</option>'+Object.entries(STATE_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
-loadRec();document.getElementById('blocker').style.display='none';
-setInterval(()=>{document.getElementById('last-updated').textContent='Atualizado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})},30000)});
+async function loadRec(){
+buildRecFilters();
+const q=recFilters();
+const s=await F('/dashboard/stats?'+q);if(!s)return;
+document.getElementById('rec-kpi').innerHTML=
+kpiCard(s.total_sessions,'Sessões','+'+s.active+' ativas','#0056D2','analytics','Total de sessões de recuperação iniciadas no período. Inclui ativas, convertidas, esgotadas e canceladas.')+
+kpiCard(s.converted,'Convertidas',s.conversion_rate+'% de conversão','#10b981','trending_up','Sessões em que o contato comprou após receber a sequência. Taxa sobre sessões resolvidas (exclui as ainda ativas).')+
+kpiCard(fc(s.total_revenue_cents),'Receita Total',s.messages_sent+' msgs','#64748b','account_balance','Soma do valor de todas as sessões do período — representa o potencial total de recuperação.')+
+kpiCard(fc(s.recovered_cents),'Recuperada',(s.total_revenue_cents>0?Math.round(s.recovered_cents/s.total_revenue_cents*100):0)+'% da receita','#3b82f6','payments','Valor efetivamente recuperado — soma das sessões convertidas. O percentual indica quanto da receita em risco foi salva.');
+
+const d=await F('/dashboard/daily?'+q);
+if(d&&d.length){if(charts.daily)charts.daily.destroy();charts.daily=new Chart(document.getElementById('chDaily').getContext('2d'),{type:'line',data:{labels:d.map(x=>fdy(x.day)),datasets:[{label:'Sessões',data:d.map(x=>x.sessions),borderColor:'#0056D2',backgroundColor:'rgba(0,86,210,.06)',fill:true,tension:.4,pointRadius:3},{label:'Convertidas',data:d.map(x=>x.converted),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.06)',fill:true,tension:.4,pointRadius:3}]},options:lc()})}
+
+const ps=await F('/dashboard/product-stats?'+q);
+if(ps&&ps.length){if(charts.prod)charts.prod.destroy();charts.prod=new Chart(document.getElementById('chProd').getContext('2d'),{type:'bar',data:{labels:ps.map(x=>P[x.template_prefix]||x.template_prefix),datasets:[{label:'Total',data:ps.map(x=>x.total),backgroundColor:'rgba(0,86,210,.15)',borderRadius:6},{label:'Convertidas',data:ps.map(x=>x.converted),backgroundColor:'rgba(16,185,129,.7)',borderRadius:6}]},options:lc()})}
+
+const fn=await F('/dashboard/funnel?'+q);
+if(fn&&fn.length){if(charts.funnel)charts.funnel.destroy();charts.funnel=new Chart(document.getElementById('chFun').getContext('2d'),{type:'bar',data:{labels:fn.map(x=>`Msg ${x.message_number}`),datasets:[{label:'Conversões',data:fn.map(x=>x.converted),backgroundColor:['rgba(0,86,210,.8)','rgba(16,185,129,.8)','rgba(99,102,241,.8)'],borderRadius:8}]},options:lc()})}
+
+await loadRecTbl();
+await loadCosts(q);
+}
+
+async function loadRecTbl(){
+const p={page:rp,limit:20};if(recSt)p.status=recSt;if(recEm)p.email=recEm;
+const qs=recFilters()+'&'+new URLSearchParams(p).toString();
+const d=await F('/dashboard/sessions?'+qs);if(!d)return;
+rtp=d.pages;document.getElementById('rec-count').textContent=`${d.total} encontradas`;document.getElementById('rec-pag').textContent=`Página ${d.page} de ${d.pages}`;
+document.getElementById('rec-prev').disabled=d.page<=1;document.getElementById('rec-next').disabled=d.page>=d.pages;
+document.getElementById('rec-tb').innerHTML=(d.data||[]).map(s=>{
+const dots=[1,2,3].map(i=>i<=s.messages_sent?`<span class="dot" style="background:${s.status==='converted'&&i===s.messages_sent?'#10b981':'#0056D2'}"></span>`:'<span class="dot" style="background:#e2e8f0"></span>').join(' ');
+return`<tr><td><strong>${es(s.full_name||'–')}</strong><br><span style="font-size:11px;color:#94a3b8">${es(s.email||'–')}</span></td><td style="font-weight:600">${P[s.template_prefix]||s.product_name}</td><td>${s.platform==='kiwify'?'<span class="badge bkiw">Kiwify</span>':'<span class="badge bass">Assiny</span>'}</td><td><span class="badge" style="background:#f1f5f9;color:#475569">${s.trigger_event==='abandoned_cart'?'Carrinho':s.trigger_event==='waiting_payment'?'Aguardando':'Recusado'}</span></td><td><div style="display:flex;gap:2px">${dots}</div></td><td>${SB[s.status]||s.status}</td><td style="font-weight:600">${s.amount_cents?fc(s.amount_cents):'–'}</td><td>${fd(s.created_at)}</td></tr>`}).join('');
+const rs=await F('/dashboard/sessions?start_date='+recStart+'&end_date='+recEnd+'&page=1&limit=6');
+if(rs)document.getElementById('rec-recent').innerHTML=(rs.data||[]).slice(0,6).map(s=>`<div class="glass" style="padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#0056D2">${ini(s.full_name||'?')}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">${es(s.full_name||'–')}</div><div style="font-size:12px;color:#0056D2">${P[s.template_prefix]||s.product_name}</div></div></div>`).join('')}
+}
+function recPg(d){const n=rp+d;if(n<1||n>rtp)return;rp=n;loadRecTbl()}
+
+async function loadCosts(q){
+const s=await F('/dashboard/stats?'+q);
+const cost=await F('/cost?'+q);
+if(!s)return;
+const msg=s.messages_sent||0;const cv=s.converted||0;
+const has=cost&&cost.total_cost>0;const rate=cost?.usd_brl_rate||5.55;
+const tc=has?cost.total_cost_brl:msg*.35;
+const cpa=cv>0?tc/cv:0;
+const rpct=s.recovered_cents>0?(tc/(s.recovered_cents/100)*100).toFixed(1):'0';
+document.getElementById('cost-kpis').innerHTML=
+kpiCard(fc(tc*100),'Total Gasto',has?`US$ ${cost.total_cost.toFixed(2)} real (Meta)`:`${msg} msgs × R$ 0,35`,'#d97706','receipt_long','Custo total de mensagens no período. '+(has?'Valor REAL cobrado pela Meta convertido a R$ '+rate.toFixed(2)+'/US$.':'Estimativa: nº de mensagens × R$ 0,35. Configure META_WABA_ID para custo real.'))+
+kpiCard(cpa>0?fc(cpa*100):'–','Custo por Conversão',cv+' conversões','#7c3aed','auto_graph','Quanto custou em média cada venda recuperada. Total gasto ÷ número de sessões convertidas.')+
+kpiCard(rpct+'%','Custo / Receita','do valor recuperado','#ef4444','percent','Proporção do custo de mensagens em relação à receita recuperada. Ideal: abaixo de 20%.');
+if(charts.cost)charts.cost.destroy();
+const d=await F('/dashboard/daily?'+q);
+if(!d||!d.length)return;
+const byDay=cost?.by_day||{};
+const cd=d.map(x=>has?+(((byDay[x.day]||0)*rate).toFixed(2)):+((x.messages_sent||0)*.35).toFixed(2));
+charts.cost=new Chart(document.getElementById('chCost').getContext('2d'),{type:'bar',data:{labels:d.map(x=>fdy(x.day)),datasets:[{label:'Custo (R$)',data:cd,backgroundColor:'rgba(251,191,36,.5)',borderColor:'#f59e0b',borderWidth:1,borderRadius:6}]},options:{...lc(),plugins:{...lc().plugins,tooltip:{...lc().plugins.tooltip,callbacks:{label:ctx=>' R$ '+ctx.parsed.y.toFixed(2)}}}}});
+}
+
+// ═══════════ JOURNEY ═══════════
+let jStart=today(),jEnd=today(),jState='',jTemp='',jTick='';
+
+function jFilters(){return`start_date=${jStart}&end_date=${jEnd}`}
+function buildJFilters(){
+document.getElementById('j-filters').innerHTML=`
+<input type="date" value="${jStart}" onchange="jStart=this.value"> até <input type="date" value="${jEnd}" onchange="jEnd=this.value">
+<button class="btn btn-p" onclick="jp=1;loadJourney()">Aplicar</button>
+<button class="btn btn-g" onclick="jStart=today();jEnd=today();jp=1;buildJFilters();loadJourney()">Limpar</button>`;
+document.getElementById('jst').innerHTML='<option value="">Estados</option>'+Object.entries(SL).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+}
+
+async function loadJourney(){
+buildJFilters();
+const q=jFilters();
+await Promise.all([loadJKpi(q),loadJKanban(q),loadJAlerts(),loadJFunnel(q),loadJProd(q),jLeads()]);
+}
+
+async function loadJKpi(q){
+const s=await F('/dashboard/journey/stats?'+q);if(!s)return;
+const ins=await F('/dashboard/journey/insights');
+const hot=ins?ins.temperatura.quente:0;const ht=ins?ins.ticket.high:0;const lw=ins?ins.ticket.low:0;
+// Ascension = journeys with 2+ products purchased
+const all=await F('/dashboard/journey/leads?'+q+'&limit=1000');
+let ascended=0;if(all&&all.data){ascended=all.data.filter(l=>(l.purchased_products||[]).length>1).length}
+document.getElementById('j-kpi').innerHTML=
+kpiCard(s.active,'Jornadas Ativas',s.paused+' pausadas','#0056D2','route','Total de alunos com jornada em andamento. Ativas = recebendo mensagens automáticas. Pausadas = conversando com um humano (agente ou Júlia).')+
+kpiCard(ascended,'Ascenderam',s.completed+' jornadas completas','#10b981','trending_up','Alunos que compraram 2+ produtos. Isso indica que a jornada de ascensão funcionou — o aluno foi do primeiro produto para o próximo.')+
+kpiCard(hot,'Leads Quentes',ins?ins.total_analyzed+' analisados':'0 analisados','#ef4444','local_fire_department','Leads que a IA classificou como "quente": engajados, respondem rápido, compraram recentemente. Têm alta probabilidade de converter.')+
+kpiCard(ht,'Potencial High Ticket',lw+' potencial low','#7c3aed','diamond','Leads que a IA analisadora identificou com POTENCIAL para comprar produtos caros (Formação R$2.997, Diagnóstico R$3-5K, Kasulo R$15.5K). Não é o que já compraram — é o potencial identificado.');
+}
+
+async function loadJKanban(q){
+const rows=await F('/dashboard/journey/leads?'+q+'&limit=1000');
+const all=rows?rows.data||[]:[];
+const sts={ativacao:0,engajada:0,fria:0,paused:0,completed:0,opted_out:0};
+let acl=0;
+all.forEach(l=>{
+const s=l.current_state||'';
+if(sts.hasOwnProperty(s))sts[s]++;
+else if(s.startsWith('acel_'))acl++;
+});
+const cols=[
+{n:'ativacao',l:'Ativação',c:'#3b82f6',bg:'#eff6ff',v:sts.ativacao,icon:'rocket_launch',tip:'Alunos que acabaram de comprar. Receberam o template de boas-vindas e estão nos primeiros dias.'},
+{n:'engajada',l:'Engajada',c:'#10b981',bg:'#ecfdf5',v:sts.engajada,icon:'forum',tip:'Alunos que responderam e estão ativos na jornada. Recebendo templates de engajamento e diagnóstico.'},
+{n:'acelerada',l:'Acelerada',c:'#f59e0b',bg:'#fffbeb',v:acl,icon:'trending_up',tip:'Alunos que demonstraram interesse em um produto específico e estão na rota de oferta acelerada (Feed, Conteúdo, MPI, etc).'},
+{n:'fria',l:'Fria',c:'#94a3b8',bg:'#f8fafc',v:sts.fria,icon:'ac_unit',tip:'Alunos que não responderam aos templates. Estão na trilha de reativação automática (D+3 até D+120).'},
+{n:'completed',l:'Completa',c:'#6366f1',bg:'#eef2ff',v:sts.completed,icon:'verified',tip:'Jornadas concluídas com sucesso. O aluno completou o fluxo ou comprou um produto de ascensão.'},
+{n:'opted_out',l:'Opt-out',c:'#ef4444',bg:'#fef2f2',v:sts.opted_out,icon:'block',tip:'Alunos que pediram para parar de receber mensagens ou foram para o suporte.'},
+];
+document.getElementById('j-kanban').innerHTML=cols.map(c=>`<div class="kanban-col glass" style="background:${c.bg};cursor:pointer" onclick="jState='${c.n}';jLeads()"><span class="material-symbols-outlined" style="font-size:24px;color:${c.c}">${c.icon}</span><div class="kanban-n" style="color:${c.c}">${c.v}</div><div class="kanban-l" style="color:${c.c}">${c.l} <span class="tip" data-tip="${c.tip}">?</span></div></div>`).join('');
+}
+
+async function loadJAlerts(){
+const rows=await F('/dashboard/journey/leads?limit=500');
+const all=rows?rows.data||[]:[];
+const now=new Date();
+let noResp=0,hotStuck=0;
+all.forEach(l=>{
+const lr=l.last_response_at;if(lr){const d=new Date(lr);if((now-d)/(1000*3600*24)>7)noResp++}
+if(l.temperatura==='quente'&&l.status==='paused')hotStuck++;
+});
+document.getElementById('j-alerts').innerHTML=`
+<div class="glass alert-card" style="border-left-color:#f59e0b"><strong>⚠️ ${noResp} leads</strong><br><span style="font-size:12px;color:#64748b">Sem resposta há +7 dias. Considere acionar manualmente.</span></div>
+<div class="glass alert-card" style="border-left-color:#ef4444"><strong>🔥 ${hotStuck} leads quentes parados</strong><br><span style="font-size:12px;color:#64748b">Quentes mas com jornada pausada. Podem precisar de atenção humana.</span></div>
+<div class="glass alert-card" style="border-left-color:#7c3aed"><strong>📊 Leads analisados</strong><br><span style="font-size:12px;color:#64748b">Perfis atualizados automaticamente após cada conversa com a Júlia.</span></div>`;
+}
+
+async function loadJFunnel(q){
+const rows=await F('/dashboard/journey/leads?'+q+'&limit=1000');
+const all=rows?rows.data||[]:[];
+const f={ativacao:0,engajada:0,acelerada:0,fria:0,completed:0};
+all.forEach(l=>{const s=l.current_state||'';if(f.hasOwnProperty(s))f[s]++;else if(s.startsWith('acel_')||s.includes('followup'))f.acelerada++;});
+if(charts.jfun)charts.jfun.destroy();
+charts.jfun=new Chart(document.getElementById('chJfun').getContext('2d'),{type:'bar',data:{labels:['Ativação','Engajada','Acelerada','Fria','Completa'],datasets:[{data:[f.ativacao,f.engajada,f.acelerada,f.fria,f.completed],backgroundColor:['#3b82f6','#10b981','#f59e0b','#94a3b8','#6366f1'],borderRadius:8}]},options:{...lc(),plugins:{...lc().plugins,legend:{display:false}}}});
+}
+
+async function loadJProd(q){
+const p=await F('/dashboard/journey/products?'+q);
+if(!p||!p.length)return;
+if(charts.jprod)charts.jprod.destroy();
+charts.jprod=new Chart(document.getElementById('chJprod').getContext('2d'),{type:'bar',indexAxis:'y',data:{labels:p.map(x=>PS[x.product]||x.product),datasets:[{label:'Jornadas',data:p.map(x=>x.journeys),backgroundColor:'rgba(0,86,210,.6)',borderRadius:4},{label:'Compras',data:p.map(x=>x.purchases),backgroundColor:'rgba(16,185,129,.6)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11},boxWidth:10}}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
+}
+
+async function jLeads(){
+const p={page:jp,limit:20};
+const s=document.getElementById('js')?.value?.trim();if(s)p.search=s;
+const st=document.getElementById('jst')?.value||jState;if(st)p.state=st;
+const tm=document.getElementById('jtm')?.value||jTemp;if(tm)p.temperatura=tm;
+const tk=document.getElementById('jtk')?.value||jTick;if(tk)p.ticket=tk;
+const q=jFilters()+'&'+new URLSearchParams(p).toString();
+const d=await F('/dashboard/journey/leads?'+q);if(!d)return;
+jtp=d.pages;document.getElementById('j-count').textContent=`${d.total} leads`;document.getElementById('j-pag').textContent=`Página ${d.page} de ${d.pages}`;
+document.getElementById('j-prev').disabled=d.page<=1;document.getElementById('j-next').disabled=d.page>=d.pages;
+document.getElementById('j-tb').innerHTML=(d.data||[]).map(l=>{
+const tags=(l.tags||[]).slice(0,3).map(t=>`<span class="badge ba" style="margin:1px;font-size:10px">${t}</span>`).join('')||'–';
+const prods=(l.purchased_products||[]).slice(0,2).map(p=>PS[p]||p).join(', ')||'–';
+return`<tr class="lead-row" onclick="tLead('${l.phone}')"><td><strong>${es(l.full_name||'–')}</strong></td><td style="font-family:monospace;font-size:12px">${l.phone}</td><td>${JB[l.status]||l.status}</td><td>${TB[l.temperatura]||'<span style="color:#94a3b8">–</span>'}</td><td>${TKB[l.ticket]||'<span style="color:#94a3b8">–</span>'}</td><td style="font-size:12px">${prods}</td><td><span class="badge ba">D+${l.day_offset||0}</span></td><td style="font-size:12px">${fd(l.last_response_at)}</td></tr>
+<tr class="ld" id="d-${l.phone}" style="display:none"><td colspan="8"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px"><div><strong style="font-size:12px;color:#64748b">Dores</strong><p style="font-size:13px;margin-top:4px">${(l.dores||[]).join(', ')||'Nenhuma registrada'}</p></div><div><strong style="font-size:12px;color:#64748b">Ambições</strong><p style="font-size:13px;margin-top:4px">${(l.ambicoes||[]).join(', ')||'Nenhuma registrada'}</p></div><div><strong style="font-size:12px;color:#64748b">Perfil</strong><p style="font-size:13px;margin-top:4px">${es(l.perfil||'Não analisado')}</p></div><div><strong style="font-size:12px;color:#64748b">Tags</strong><div style="margin-top:4px">${tags}</div><div style="margin-top:8px"><span class="badge ba">${SL[l.current_state]||l.current_state}</span></div></div></div></td></tr>`}).join('');
+}
+function tLead(p){const r=document.getElementById('d-'+p);if(r)r.style.display=r.style.display==='none'?'':''}
+function jPg(d){const n=jp+d;if(n<1||n>jtp)return;jp=n;jLeads()}
+
+// ═══════════ INIT ═══════════
+document.addEventListener('DOMContentLoaded',async()=>{
+if(!T()){window.location.href='/login';return}
+loadRec();
+setInterval(()=>{document.getElementById('updated').textContent='Atualizado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})},30000);
+});
 </script>
 </body>
 </html>

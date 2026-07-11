@@ -15,7 +15,7 @@ from app.database import get_supabase
 from app.routers import admin, agent, assiny, auth, chatwoot, dashboard, kiwify, meta
 from app.services.meta_analytics import sync_costs
 from app.services.scheduler import run_cost_sync, run_scheduler
-from app.utils.auth import verify_api_key
+from app.utils.auth import verify_api_key, verify_jwt
 
 # Railway colore stderr de vermelho — manda tudo pra stdout
 logging.basicConfig(
@@ -131,8 +131,8 @@ app.include_router(agent.router, dependencies=[Depends(verify_api_key)])
 # ── Auth (login page + token endpoint, no auth required) ──
 app.include_router(auth.router)
 
-# ── Dashboard (SPA checks JWT client-side) ──
-app.include_router(dashboard.router)
+# ── Dashboard (JWT required on all endpoints) ──
+app.include_router(dashboard.router, dependencies=[Depends(verify_jwt)])
 
 
 @app.get("/health", tags=["infra"])
