@@ -8,7 +8,7 @@ from fastapi import FastAPI, Query
 
 from app.config import settings
 from app.database import get_supabase
-from app.routers import agent, assiny, dashboard, kiwify, meta
+from app.routers import agent, assiny, chatwoot, dashboard, kiwify, meta
 from app.services.meta_analytics import sync_costs
 from app.services.scheduler import run_cost_sync, run_scheduler
 
@@ -48,6 +48,7 @@ app = FastAPI(
 app.include_router(kiwify.router)
 app.include_router(assiny.router)
 app.include_router(meta.router)
+app.include_router(chatwoot.router)
 app.include_router(agent.router)
 app.include_router(dashboard.router)
 
