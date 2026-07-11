@@ -6,6 +6,7 @@ GET  /webhooks/meta — verification challenge (required by Meta setup)
 POST /webhooks/meta — incoming notifications (messages + statuses)
 """
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -15,6 +16,7 @@ from fastapi import APIRouter, Header, HTTPException, Query, Request, Response
 
 from app.config import settings
 from app.services.journey_engine import process_response
+from app.services.message_buffer import buffer_and_debounce
 from app.utils.phone import normalize_phone
 
 logger = logging.getLogger(__name__)
@@ -271,9 +273,14 @@ async def _handle_incoming_message(msg: dict) -> None:
     needs_agent = _should_call_agent(journey_result, button_text)
 
     if needs_agent and text_body:
-        await _call_agent_and_reply(phone=phone, message=text_body)
+        # Debounce: a burst of fragments ("oi" / "tudo bem?" / "eu preciso
+        # de...") collapses into one combined reply instead of Júlia
+        # answering each fragment separately. Fire-and-forget so the Meta
+        # webhook responds immediately instead of blocking on the debounce
+        # window + LLM call + WhatsApp send.
+        asyncio.create_task(buffer_and_debounce(phone, text_body, _call_agent_and_reply))
     elif needs_agent and button_text:
-        await _call_agent_and_reply(phone=phone, message=button_text)
+        asyncio.create_task(_call_agent_and_reply(phone, button_text))
 
 
 def _should_call_agent(journey_result: dict | None, button_text: str | None) -> bool:
@@ -299,25 +306,31 @@ def _should_call_agent(journey_result: dict | None, button_text: str | None) -> 
 
 
 async def _call_agent_and_reply(phone: str, message: str) -> None:
-    """Call Júlia agent, send the reply via WhatsApp, and mirror it into
-    Chatwoot (as her Agent Bot identity) so human agents see the full
-    conversation there too."""
+    """Call Júlia agent, split her reply into WhatsApp-sized bubbles, send
+    each via WhatsApp, and mirror each into Chatwoot (as her Agent Bot
+    identity) so human agents see the full conversation there too."""
     from app.agent.engine import julia_reply
     from app.services.whatsapp import send_text
     from app.services.chatwoot_client import find_conversation, send_chatwoot_message
+    from app.utils.message_split import split_message
 
     try:
         result = await julia_reply(phone=phone, message=message)
         reply = result.get("reply", "")
 
         if reply:
-            await send_text(phone=phone, body=reply)
-            logger.info(f"Agent reply sent to {phone}: {reply[:80]}...")
-
+            chunks = split_message(reply)
             conv = await find_conversation(phone)
-            if conv:
-                account_id, conversation_id = conv
-                await send_chatwoot_message(account_id, conversation_id, reply)
+
+            for i, chunk in enumerate(chunks):
+                await send_text(phone=phone, body=chunk)
+                if conv:
+                    account_id, conversation_id = conv
+                    await send_chatwoot_message(account_id, conversation_id, chunk)
+                if i < len(chunks) - 1:
+                    await asyncio.sleep(1.2)
+
+            logger.info(f"Agent reply sent to {phone} in {len(chunks)} part(s): {reply[:80]}...")
     except Exception:
         logger.exception(f"Error calling agent for {phone}")
 
