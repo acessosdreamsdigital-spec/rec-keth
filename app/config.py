@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     # Chatwoot API — send agent replies through Chatwoot so they appear in the UI
     chatwoot_api_url: str = ""
     chatwoot_api_token: str = ""
+    chatwoot_account_id: str = ""
+
+    # Chatwoot Agent Bot — Júlia posts her replies using this token (not a
+    # human agent's) so Chatwoot tags them sender_type=AgentBot. That's how
+    # we tell her own messages apart from a real human agent replying in the
+    # Chatwoot UI (sender_type=User), which is what triggers the permanent
+    # human handoff (see app/routers/chatwoot.py).
+    chatwoot_bot_token: str = ""
 
     # Supabase
     supabase_url: str

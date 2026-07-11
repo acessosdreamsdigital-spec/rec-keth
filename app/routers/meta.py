@@ -106,6 +106,25 @@ async def receive_webhook(
     return {"status": "ok"}
 
 
+async def _is_human_takeover(phone: str) -> bool:
+    """True once a human agent has replied via Chatwoot for this contact
+    (status="suporte", set by app/routers/chatwoot.py). Sticky — there is
+    no automatic resume, so Júlia stays silent even if the customer keeps
+    messaging."""
+    from app.database import get_supabase
+
+    db = await get_supabase()
+    result = await (
+        db.table("contact_journeys")
+        .select("id")
+        .eq("phone", phone)
+        .eq("status", "suporte")
+        .limit(1)
+        .execute()
+    )
+    return bool(result.data)
+
+
 async def _pause_journey_for(phone: str) -> None:
     """Pause automated journey when student sends text (avoids template
     interruption during human/agent conversation)."""
@@ -202,6 +221,10 @@ async def _handle_incoming_message(msg: dict) -> None:
     phone = normalize_phone(from_number)
     msg_type = msg.get("type", "unknown")
 
+    if await _is_human_takeover(phone):
+        logger.info(f"Skipping automation for {phone} — handed off to a human agent")
+        return
+
     button_text: str | None = None
     text_body: str | None = None
 
@@ -276,9 +299,12 @@ def _should_call_agent(journey_result: dict | None, button_text: str | None) -> 
 
 
 async def _call_agent_and_reply(phone: str, message: str) -> None:
-    """Call Júlia agent and send the reply via WhatsApp."""
+    """Call Júlia agent, send the reply via WhatsApp, and mirror it into
+    Chatwoot (as her Agent Bot identity) so human agents see the full
+    conversation there too."""
     from app.agent.engine import julia_reply
     from app.services.whatsapp import send_text
+    from app.services.chatwoot_client import find_conversation, send_chatwoot_message
 
     try:
         result = await julia_reply(phone=phone, message=message)
@@ -287,6 +313,11 @@ async def _call_agent_and_reply(phone: str, message: str) -> None:
         if reply:
             await send_text(phone=phone, body=reply)
             logger.info(f"Agent reply sent to {phone}: {reply[:80]}...")
+
+            conv = await find_conversation(phone)
+            if conv:
+                account_id, conversation_id = conv
+                await send_chatwoot_message(account_id, conversation_id, reply)
     except Exception:
         logger.exception(f"Error calling agent for {phone}")
 
