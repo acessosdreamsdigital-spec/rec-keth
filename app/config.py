@@ -4,14 +4,19 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # Meta WhatsApp Cloud API
+    # Meta WhatsApp Cloud API — Júlia (Suporte Keth)
+    # phone_number_id = 1178750298660315, waba_id = 1521012845568398
     meta_phone_number_id: str
     meta_access_token: str
-    meta_api_version: str = "v19.0"
+    meta_api_version: str = "v21.0"
     # WhatsApp Business Account id — needed for cost (pricing_analytics) sync.
     # Found in WhatsApp Manager → Configurações da conta. Cost sync is skipped
     # while this is empty.
     meta_waba_id: str = ""
+
+    # Meta Webhook secrets (for POST /webhooks/meta HMAC validation + GET verify)
+    meta_app_secret: str = ""
+    meta_verify_token: str = ""
 
     # Supabase
     supabase_url: str

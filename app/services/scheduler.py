@@ -1,15 +1,11 @@
 """
 Background scheduler.
 
-Claims due scheduled_messages atomically (so multiple replicas never double-send)
-and, for each:
-  1. Verify the parent session is still active (not converted/cancelled)
-  2. Send the WhatsApp template via Meta API
-  3. On success: mark 'sent', increment messages_sent, exhaust after message 3
-  4. On transient failure: back off and retry up to MESSAGE_MAX_ATTEMPTS
-  5. On permanent failure (or attempts exhausted): mark 'failed'
+Two main loops:
+1. Recovery messages — claims due scheduled_messages (3-msg linear sequences)
+2. Journey messages — claims due journey_messages (37-template state machine)
 
-A second loop periodically syncs Meta cost (pricing_analytics) into meta_cost_daily.
+Plus a cost sync loop for Meta pricing_analytics.
 """
 
 import asyncio
@@ -18,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.config import settings
 from app.database import get_supabase
+from app.services.journey_engine import schedule_next
 from app.services.meta_analytics import sync_costs
 from app.services.whatsapp import WhatsAppSendError, send_template
 
@@ -153,12 +150,134 @@ async def _process_due_messages() -> None:
         )
 
 
+async def _process_due_journey_messages() -> None:
+    """
+    Claims due journey_messages atomically and sends them via Meta API.
+    After each successful send, calls schedule_next() to advance the state machine.
+    """
+    db = await get_supabase()
+
+    claimed = await db.rpc(
+        "claim_due_journey_messages", {"p_limit": settings.scheduler_batch_size}
+    ).execute()
+    messages = claimed.data or []
+    if not messages:
+        return
+
+    logger.info(f"Journey scheduler: claimed {len(messages)} message(s)")
+
+    # Load journeys to get full_name for template variables
+    journey_ids = list({m["journey_id"] for m in messages})
+    journey_result = await (
+        db.table("contact_journeys")
+        .select("id, full_name, status, current_state")
+        .in_("id", journey_ids)
+        .execute()
+    )
+    journeys = {j["id"]: j for j in (journey_result.data or [])}
+
+    for msg in messages:
+        journey = journeys.get(msg["journey_id"]) or {}
+
+        # Journey was closed while this message waited
+        if journey.get("status") != "active":
+            await (
+                db.table("journey_messages")
+                .update({"status": "cancelled"})
+                .eq("id", msg["id"])
+                .execute()
+            )
+            continue
+
+        # Build body variables with student's name
+        full_name = journey.get("full_name", "") or ""
+        first_name = full_name.split()[0] if full_name else ""
+
+        try:
+            response = await send_template(
+                phone=msg["phone"],
+                template_name=msg["template_name"],
+                body_variables=[first_name] if first_name else None,
+            )
+        except WhatsAppSendError as exc:
+            await _retry_or_fail_journey(db, msg, str(exc), transient=exc.transient)
+            continue
+        except Exception as exc:
+            await _retry_or_fail_journey(db, msg, f"unexpected: {exc}", transient=True)
+            continue
+
+        wa_id = (response.get("messages") or [{}])[0].get("id")
+        sent_at = _now().isoformat()
+
+        await (
+            db.table("journey_messages")
+            .update({
+                "status": "sent",
+                "sent_at": sent_at,
+                "whatsapp_message_id": wa_id,
+            })
+            .eq("id", msg["id"])
+            .execute()
+        )
+
+        logger.info(
+            f"Journey msg sent: {msg['template_name']} to={msg['phone']} "
+            f"wa_id={wa_id} state={journey.get('current_state')}"
+        )
+
+        # Advance state machine — schedule next template
+        try:
+            result = await schedule_next(msg["journey_id"], msg["template_name"])
+            logger.info(f"Journey next: {result}")
+        except Exception:
+            logger.exception(f"Error scheduling next after {msg['template_name']}")
+
+
+async def _retry_or_fail_journey(db, msg: dict, error: str, transient: bool) -> None:
+    """Retry or fail a journey message (same logic as recovery _retry_or_fail)."""
+    attempts = (msg.get("attempts") or 0) + 1
+    can_retry = transient and attempts < settings.message_max_attempts
+
+    if can_retry:
+        backoff = settings.message_retry_base_minutes * (2 ** (attempts - 1))
+        next_at = (_now() + timedelta(minutes=backoff)).isoformat()
+        await (
+            db.table("journey_messages")
+            .update({
+                "status": "pending",
+                "attempts": attempts,
+                "claimed_at": None,
+                "scheduled_for": next_at,
+                "error_message": error,
+            })
+            .eq("id", msg["id"])
+            .execute()
+        )
+        logger.warning(
+            f"Journey retry msg {msg['id']} (attempt {attempts}/{settings.message_max_attempts}) "
+            f"in {backoff}min: {error}"
+        )
+    else:
+        await (
+            db.table("journey_messages")
+            .update({
+                "status": "failed",
+                "attempts": attempts,
+                "error_message": error,
+            })
+            .eq("id", msg["id"])
+            .execute()
+        )
+        logger.error(f"Journey failed msg {msg['id']} after {attempts} attempt(s): {error}")
+
+
 async def run_scheduler(interval_seconds: int = 30) -> None:
-    """Runs forever, processing due messages every `interval_seconds`."""
-    logger.info(f"Recovery scheduler started (interval={interval_seconds}s)")
+    """Runs forever, processing due recovery + journey messages every `interval_seconds`."""
+    logger.info(f"Scheduler started (interval={interval_seconds}s)")
     while True:
         try:
-            await _process_due_messages()
+            await _process_due_messages()          # recovery messages (existing)
+            await _process_due_journey_messages()   # journey messages (new)
         except Exception as exc:
             logger.error(f"Scheduler loop error: {exc}")
         await asyncio.sleep(interval_seconds)

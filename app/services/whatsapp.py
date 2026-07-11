@@ -23,9 +23,19 @@ class WhatsAppSendError(Exception):
 _TRANSIENT_STATUSES = {408, 429, 500, 502, 503, 504}
 
 
-async def send_template(phone: str, template_name: str) -> dict:
+async def send_template(
+    phone: str,
+    template_name: str,
+    body_variables: list[str] | None = None,
+) -> dict:
     """
     Send a WhatsApp template message via Meta Cloud API.
+
+    Args:
+        phone: E.164 phone number
+        template_name: Template name in Meta
+        body_variables: Values for {{1}}, {{2}}, ... in template body (e.g. ["Quézia"])
+
     Returns the full API response dict.
     Raises WhatsAppSendError (with .transient) on failure.
     """
@@ -33,14 +43,28 @@ async def send_template(phone: str, template_name: str) -> dict:
         f"https://graph.facebook.com/{settings.meta_api_version}"
         f"/{settings.meta_phone_number_id}/messages"
     )
+    template_payload = {
+        "name": template_name,
+        "language": {"code": "pt_BR"},
+    }
+
+    # Add body variables if provided
+    if body_variables:
+        template_payload["components"] = [
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": v}
+                    for v in body_variables
+                ],
+            }
+        ]
+
     payload = {
         "messaging_product": "whatsapp",
         "to": phone,
         "type": "template",
-        "template": {
-            "name": template_name,
-            "language": {"code": "pt_BR"},
-        },
+        "template": template_payload,
     }
     headers = {
         "Authorization": f"Bearer {settings.meta_access_token}",

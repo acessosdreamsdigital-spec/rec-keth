@@ -22,6 +22,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from app.database import get_supabase
+from app.services.journey_engine import create_journey
 from app.utils.phone import normalize_phone
 
 logger = logging.getLogger(__name__)
@@ -295,4 +296,37 @@ async def handle_purchase_approved(
         f"Converted sessions {session_ids} for phone={phone} "
         f"prefix={template_prefix} order={platform_order_id}"
     )
-    return {"status": "converted", "session_ids": session_ids}
+
+    # ── Start or update the customer journey ──
+    # Get full_name from the contacts table for the {{1}} template variable
+    full_name = contact_result.data[0].get("full_name", "") if contact_result.data else ""
+
+    # Try to extract amount from raw_payload (varies per platform)
+    amount_cents = None
+    if raw_payload:
+        try:
+            # Kiwify: body.Product.price, Assiny: data.transaction.amount
+            body = raw_payload.get("body") or raw_payload.get("data") or {}
+            product = body.get("Product") or body.get("product") or {}
+            price = product.get("price") if isinstance(product, dict) else None
+            if price is not None:
+                amount_cents = int(float(price) * 100)
+        except (ValueError, TypeError, AttributeError):
+            pass
+
+    journey_result = await create_journey(
+        contact_id=contact_id,
+        phone=phone,
+        full_name=full_name,
+        product_name=product_name,
+        platform=platform,
+        platform_order_id=platform_order_id,
+        amount_cents=amount_cents,
+    )
+    logger.info(f"Journey triggered: {journey_result}")
+
+    return {
+        "status": "converted",
+        "session_ids": session_ids,
+        "journey": journey_result,
+    }
