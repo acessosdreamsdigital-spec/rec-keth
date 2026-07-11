@@ -312,6 +312,7 @@ async def _call_agent_and_reply(phone: str, message: str) -> None:
     from app.agent.engine import julia_reply
     from app.services.whatsapp import send_text
     from app.services.chatwoot_client import find_conversation, send_chatwoot_message
+    from app.services.lead_analyzer import analyze_lead_background
     from app.utils.message_split import split_message
 
     try:
@@ -331,6 +332,10 @@ async def _call_agent_and_reply(phone: str, message: str) -> None:
                     await asyncio.sleep(1.2)
 
             logger.info(f"Agent reply sent to {phone} in {len(chunks)} part(s): {reply[:80]}...")
+
+            # Background AI profiling (temperatura/ticket/estagio) — guarded
+            # by a 24h recency check inside analyze_lead itself.
+            analyze_lead_background(phone)
     except Exception:
         logger.exception(f"Error calling agent for {phone}")
 
