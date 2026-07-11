@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     # Redis — Júlia agent session memory
     redis_url: str = "redis://localhost:6379/0"
 
+    # Chatwoot — forward incoming messages for human support
+    # Leave empty to disable forwarding
+    chatwoot_webhook_url: str = ""
+
     # Supabase
     supabase_url: str
     supabase_key: str

@@ -95,12 +95,36 @@ async def receive_webhook(
             for msg in messages:
                 await _handle_incoming_message(msg)
 
+            # ── Forward to Chatwoot (transparent proxy) ──
+            await _forward_to_chatwoot(body)
+
             # ── Process status updates ──
             for status in statuses:
                 await _handle_status_update(status)
 
     # Always return 200 — Meta expects a quick ack
     return {"status": "ok"}
+
+
+async def _forward_to_chatwoot(body: bytes) -> None:
+    """Forward the original Meta payload to Chatwoot so human agents
+    continue to receive messages normally."""
+    if not settings.chatwoot_webhook_url:
+        return
+
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                settings.chatwoot_webhook_url,
+                content=body,
+                headers={"Content-Type": "application/json"},
+            )
+            if resp.status_code >= 400:
+                logger.warning(f"Chatwoot forward returned {resp.status_code}")
+    except Exception as exc:
+        logger.warning(f"Chatwoot forward failed: {exc}")
 
 
 async def _handle_incoming_message(msg: dict) -> None:
