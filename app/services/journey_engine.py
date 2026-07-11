@@ -405,6 +405,161 @@ def _days_until(target_day: int, from_day: int) -> int:
 
 
 # ═══════════════════════════════════════════════════════════════
+# Diagnostic Classification — route student to correct product
+# ═══════════════════════════════════════════════════════════════
+
+# Keyword → route mapping. First match wins (checked in order).
+DIAGNOSTIC_KEYWORDS: list[tuple[list[str], str]] = [
+    # Feed Wow — visual identity, aesthetics, feed
+    (["feed", "estética", "estetica", "identidade visual", "visual", "cores", "capas", "design", "layout", "aparência", "aparencia", "bonito", "arrumar", "harmonizar", "marca visual", "logotipo", "logo"], "feed"),
+    # Conteúdo Wow — content strategy, ideas, Instagram growth
+    (["conteúdo", "conteudo", "ideia", "criatividade", "criativo", "instagram", "postagem", "postar", "crescer", "crescimento", "seguidores", "frequência", "frequencia", "planejar", "roteiro", "gancho", "pauta", "engajamento", "algoritmo", "viral", "alcance", "frequencia de post", "bloqueio criativo", "não sei o que postar", "nao sei o que postar", "sem ideia"], "conteudo"),
+    # Meu Primeiro Infoproduto — monetization, course creation, income
+    (["ganhar dinheiro", "monetizar", "renda", "curso", "infoproduto", "produto digital", "vender", "venda", "negócio", "negocio", "empreender", "lançamento", "lancamento", "primeiro produto", "criar um curso", "meu curso", "minha ideia de curso", "quero vender"], "mpi"),
+    # Formação DDI — structured business, mentorship, community
+    (["negócio estruturado", "negocio estruturado", "formação", "formacao", "comunidade", "mentoria", "ecossistema", "acompanhamento", "carreira", "profissional", "empresa", "equipe", "time", "estrutura", "escala", "escalar", "completo", "pacote completo", "tudo", "imersão", "imersao"], "formacao_ddi"),
+    # Manual DDI — personal brand, positioning
+    (["marca pessoal", "posicionamento", "autoridade", "marca", "branding", "identidade", "propósito", "proposito", "diferencial", "autêntico", "autentico", "presença", "presenca", "reconhecimento", "reposicionar", "eu nicho", "minha marca"], "manual_ddi"),
+    # Diagnóstico Estratégico — individual analysis, specific situation
+    (["diagnóstico", "diagnostico", "análise", "analise", "específico", "especifico", "individual", "personalizado", "plano", "direcionamento", "consultoria", "orientação", "orientacao", "olhar", "avaliação", "avaliacao", "complexo", "não sei qual", "nao sei qual", "perdido", "confuso", "ajuda para decidir", "me indica"], "diagnostico"),
+    # Kasulo — acceleration, premium, close follow-up
+    (["acelerar", "rápido", "rapido", "mentoria", "kasulo", "acompanhamento próximo", "acompanhamento proximo", "premium", "intensivo", "resultado rápido", "resultado rapido", "focar", "dedicação", "dedicacao", "já faço", "ja faco", "já produzo", "ja produzo", "já tenho", "ja tenho", "quero o melhor", "quero acelerar"], "kasulo"),
+]
+
+# Route → state mapping
+ROUTE_TO_STATE = {
+    "feed": "acel_feed",
+    "conteudo": "acel_conteudo",
+    "mpi": "acel_mpi",
+    "manual_ddi": "acel_manual_ddi",
+    "formacao_ddi": "acel_formacao_ddi",
+    "diagnostico": "acel_diagnostico",
+    "kasulo": "acel_kasulo",
+}
+
+# Route → D+11 context template (first in accelerated pair)
+ROUTE_CONTEXT_TEMPLATES = {
+    "feed": "ana_capcut_acel_feed_d11_contexto_v2",
+    "conteudo": "ana_capcut_acel_conteudo_d11_contexto_v2",
+    "mpi": "ana_capcut_acel_mpi_d11_contexto_v2",
+    "manual_ddi": "ana_capcut_acel_manual_ddi_d11_contexto_v2",
+    "formacao_ddi": "ana_capcut_acel_formacao_ddi_d11_contexto_v2",
+    "diagnostico": "ana_capcut_acel_diagnostico_d11_contexto_v2",
+    "kasulo": "ana_capcut_acel_kasulo_d11_contexto_v2",
+}
+
+# Route → follow-up templates (for high-ticket: diagnostico, kasulo)
+ROUTE_FOLLOWUP_TEMPLATES = {
+    "diagnostico": [
+        "ana_diagnostico_followup_01_v2",
+        "ana_diagnostico_followup_02_v2",
+    ],
+    "kasulo": [
+        "ana_kasulo_followup_01_v2",
+        "ana_kasulo_followup_02_v2",
+    ],
+}
+
+
+def _classify_keywords(text: str) -> Optional[str]:
+    """Try keyword matching. Returns route slug or None."""
+    text_lower = text.lower().strip()
+    for keywords, route in DIAGNOSTIC_KEYWORDS:
+        for kw in keywords:
+            if kw in text_lower:
+                return route
+    return None
+
+
+async def _classify_diagnostic(text: str) -> str:
+    """
+    Classify the student's response to the diagnostic question (template 03).
+    Uses keyword matching first. Falls back to GPT-4.1 Mini for complex responses.
+    Falls back to 'conteudo' (default) if classification fails.
+    """
+    # 1. Try keywords (fast, free, covers ~70% of cases)
+    route = _classify_keywords(text)
+    if route:
+        logger.info(f"Diagnostic classified via keywords: {route}")
+        return route
+
+    # 2. Try GPT-4.1 Mini (for nuanced responses)
+    try:
+        route = await _classify_with_gpt(text)
+        if route:
+            logger.info(f"Diagnostic classified via GPT: {route}")
+            return route
+    except Exception as exc:
+        logger.warning(f"GPT classification failed, using default: {exc}")
+
+    # 3. Default: Conteúdo Wow (most common path)
+    logger.info(f"Diagnostic defaulting to 'conteudo' for: {text[:80]}...")
+    return "conteudo"
+
+
+async def _classify_with_gpt(text: str) -> Optional[str]:
+    """Use GPT-4.1 Mini to classify the diagnostic response."""
+    import json
+    import os
+
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        return None
+
+    url = "https://api.openai.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    prompt = f"""Classifique a resposta abaixo em UMA das 7 categorias. Responda APENAS com a palavra-chave.
+
+RESPOSTA DO ALUNO: "{text}"
+
+Categorias:
+- feed: identidade visual, estética, cores, capas, design do feed
+- conteudo: ideias, criatividade, o que postar, crescimento no Instagram, estratégia de conteúdo
+- mpi: monetização, criar curso, infoproduto, ganhar dinheiro, vender
+- manual_ddi: marca pessoal, posicionamento, autoridade (iniciante)
+- formacao_ddi: negócio estruturado, formação completa, comunidade (experiente)
+- diagnostico: precisa de análise individual, situação específica, não sabe qual caminho
+- kasulo: quer acelerar, já produz, quer acompanhamento premium, mentoría
+
+Palavra-chave:"""
+
+    payload = {
+        "model": "gpt-4.1-mini",
+        "messages": [
+            {"role": "system", "content": "Você classifica respostas de alunos. Responda APENAS com uma palavra."},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.1,
+        "max_tokens": 20,
+    }
+
+    import httpx
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.post(url, json=payload, headers=headers)
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        result = data["choices"][0]["message"]["content"].strip().lower()
+
+    # Normalize the response
+    valid_routes = set(ROUTE_TO_STATE.keys())
+    result_clean = result.replace(" ", "_").replace("-", "_").rstrip(".")
+    if result_clean in valid_routes:
+        return result_clean
+
+    # Try to find partial match
+    for route in valid_routes:
+        if route in result_clean:
+            return route
+
+    return None
+
+
+# ═══════════════════════════════════════════════════════════════
 # Core Journey Functions
 # ═══════════════════════════════════════════════════════════════
 
@@ -680,11 +835,26 @@ async def process_response(
     # ── Engajada: process response ──
     if state == "engajada":
         if last_template == "ana_capcut_engajada_d10_diagnostico_v2":
-            # Open question answered — skip template 04, schedule template 05
-            new_day = 31
+            # ═══════════════════════════════════════════════════
+            # CLASSIFY DIAGNOSTIC RESPONSE → ACCELERATED ROUTE
+            # ═══════════════════════════════════════════════════
+            route = await _classify_diagnostic(text_body or "")
+            new_state = ROUTE_TO_STATE[route]
+            context_template = ROUTE_CONTEXT_TEMPLATES[route]
+
+            logger.info(f"Journey {journey['id']}: diagnostic → {route} (state={new_state})")
+
+            new_tags = list(tags)
+            interesse_tag = f"interesse_{route}"
+            if interesse_tag not in new_tags:
+                new_tags.append(interesse_tag)
+
             await db.table("contact_journeys").update({
                 **update_data,
-                "day_offset": new_day,
+                "current_state": new_state,
+                "current_stage": "acelerada",
+                "tags": new_tags,
+                "day_offset": 11,
             }).eq("id", journey["id"]).execute()
 
             await (
@@ -699,13 +869,13 @@ async def process_response(
                 journey_id=journey["id"],
                 contact_id=journey["contact_id"],
                 phone=phone,
-                template_name="ana_capcut_engajada_d31_oferta_conteudo_v2",
+                template_name=context_template,
                 message_number=journey["messages_sent"] + 1,
-                state="engajada",
-                scheduled_for=now + timedelta(days=max(1, 31 - (journey.get("day_offset") or 0))),
+                state=new_state,
+                scheduled_for=now + timedelta(days=1),  # D+11, 1 day from now
             )
 
-            return {"status": "ok", "transition": "engajada: skip 04 → 05"}
+            return {"status": "ok", "transition": f"engajada → {new_state}", "route": route}
 
         if last_template in (
             "ana_capcut_engajada_d31_oferta_conteudo_v2",
@@ -811,8 +981,18 @@ async def schedule_next(journey_id: str, sent_template_name: str) -> dict:
             next_t = _get_template(next_template)
             next_day = next_t.day if next_t else new_day + 1
         elif sent_template_name.endswith("_oferta_v2"):
-            # Offer sent — no more auto messages. Response or human handles.
-            pass
+            # Offer sent — schedule follow-ups for high-ticket routes
+            if state == "acel_diagnostico":
+                next_template = "ana_diagnostico_followup_01_v2"
+                next_day = new_day + 2  # 48h after offer
+                # Transition state to followup
+                update_data["current_state"] = "diagnostico_followup"
+                update_data["current_stage"] = "followup"
+            elif state == "acel_kasulo":
+                next_template = "ana_kasulo_followup_01_v2"
+                next_day = new_day + 2
+                update_data["current_state"] = "kasulo_followup"
+                update_data["current_stage"] = "followup"
 
     # ── Fria ──
     elif state == "fria":
