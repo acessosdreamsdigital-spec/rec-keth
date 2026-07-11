@@ -150,7 +150,7 @@ async def _schedule_messages(
             "recovery_session_id": session_id,
             "contact_id": contact_id,
             "message_number": i,
-            "template_name": f"{template_prefix}{i}",
+            "template_name": f"{template_prefix}{i}_v1",
             "phone": phone,
             "scheduled_for": (now + offset).isoformat(),
             "status": "pending",
