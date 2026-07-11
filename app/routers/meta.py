@@ -106,6 +106,33 @@ async def receive_webhook(
     return {"status": "ok"}
 
 
+async def _resume_if_paused(phone: str) -> None:
+    """Resume a paused journey when the student sends a new message."""
+    from app.database import get_supabase
+
+    db = await get_supabase()
+    result = await (
+        db.table("contact_journeys")
+        .select("id")
+        .eq("phone", phone)
+        .eq("status", "paused")
+        .execute()
+    )
+    if result.data:
+        journey_id = result.data[0]["id"]
+        from datetime import datetime, timezone
+        await (
+            db.table("contact_journeys")
+            .update({
+                "status": "active",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            })
+            .eq("id", journey_id)
+            .execute()
+        )
+        logger.info(f"Journey RESUMED for {phone} — student is back")
+
+
 async def _forward_to_chatwoot(body: bytes) -> None:
     """Forward the original Meta payload to Chatwoot so human agents
     continue to receive messages normally."""
@@ -158,6 +185,9 @@ async def _handle_incoming_message(msg: dict) -> None:
     else:
         logger.debug(f"Ignoring message type={msg_type} from {phone}")
         return
+
+    # Resume journey if it was paused (human was talking, now student replied)
+    await _resume_if_paused(phone)
 
     # Always process through journey engine first (updates state/tags)
     journey_result = None
