@@ -53,40 +53,6 @@ def _check_rate(key: str, limit: int, window: int = _RATE_WINDOW) -> bool:
     return True
 
 
-@app.middleware("http")
-async def rate_limit_middleware(request: Request, call_next):
-    """Apply rate limits based on route prefix."""
-    path = request.url.path
-    client_ip = request.client.host if request.client else "unknown"
-
-    # Determine rate limit based on endpoint type
-    if path == "/health":
-        limit = 1000  # unlimited for health checks
-        window = 60
-    elif path.startswith("/webhooks/"):
-        limit = int(settings.rate_limit_webhooks.split("/")[0])
-        window = 60
-    elif path.startswith("/admin/") or path.startswith("/dashboard/") or path == "/cost":
-        limit = int(settings.rate_limit_admin.split("/")[0])
-        window = 60
-    elif path.startswith("/agent/") or path.startswith("/journey/"):
-        limit = int(settings.rate_limit_agent.split("/")[0])
-        window = 60
-    else:
-        limit = 60
-        window = 60
-
-    key = f"{client_ip}:{path.split('/')[1] if '/' in path else path}"
-    if not _check_rate(key, limit, window):
-        return JSONResponse(
-            status_code=429,
-            content={"detail": "Too many requests. Slow down."},
-            headers={"Retry-After": str(window)},
-        )
-
-    return await call_next(request)
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     tasks = [
@@ -110,6 +76,35 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """Apply rate limits based on route prefix."""
+    path = request.url.path
+    client_ip = request.client.host if request.client else "unknown"
+
+    if path == "/health":
+        limit, window = 1000, 60
+    elif path.startswith("/webhooks/"):
+        limit, window = int(settings.rate_limit_webhooks.split("/")[0]), 60
+    elif path.startswith("/admin/") or path.startswith("/dashboard/") or path == "/cost":
+        limit, window = int(settings.rate_limit_admin.split("/")[0]), 60
+    elif path.startswith("/agent/") or path.startswith("/journey/"):
+        limit, window = int(settings.rate_limit_agent.split("/")[0]), 60
+    else:
+        limit, window = 60, 60
+
+    key = f"{client_ip}:{path.split('/')[1] if '/' in path else path}"
+    if not _check_rate(key, limit, window):
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Too many requests. Slow down."},
+            headers={"Retry-After": str(window)},
+        )
+
+    return await call_next(request)
+
 
 # CORS — allow Chatwoot and dashboard access
 app.add_middleware(

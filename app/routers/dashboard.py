@@ -2,15 +2,18 @@
 Dashboard API — all endpoints consumed by the frontend at /dashboard.
 
 Endpoints:
-  GET /dashboard/           → serve index.html
-  GET /dashboard/stats      → KPI cards
-  GET /dashboard/sessions   → paginated sessions table (filterable by email)
-  GET /dashboard/funnel     → conversions by message number
-  GET /dashboard/product-stats → per-product aggregation
-  GET /dashboard/daily      → sessions + conversions per day (timeline chart)
-
-All endpoints accept the same optional query filters:
-  start_date, end_date, platform, product (template_prefix), status, email
+  GET /dashboard/                → serve index.html
+  GET /dashboard/stats           → KPI cards
+  GET /dashboard/sessions        → paginated sessions table
+  GET /dashboard/funnel          → conversions by message number
+  GET /dashboard/product-stats   → per-product aggregation
+  GET /dashboard/daily           → sessions + conversions per day
+  GET /dashboard/journey/stats   → journey KPI cards
+  GET /dashboard/journey/leads   → paginated leads with search/filters
+  GET /dashboard/journey/lead/{phone} → single lead deep view
+  GET /dashboard/journey/daily   → journeys + messages per day
+  GET /dashboard/journey/products → product distribution
+  GET /dashboard/journey/insights → lead intelligence summary
 """
 
 import os
@@ -75,7 +78,7 @@ async def _fetch_all(table, columns, sd, ed, platform, product, extra=None):
         offset += page_size
 
 
-# ── endpoints ──────────────────────────────────────────────────────────────
+# ── existing endpoints ─────────────────────────────────────────────────────
 
 @router.get("/stats")
 async def get_stats(
@@ -264,3 +267,355 @@ async def get_daily(
         [{"day": k, **v} for k, v in daily.items()],
         key=lambda x: x["day"],
     )
+
+
+# ── journey helpers ────────────────────────────────────────────────────────
+
+def _apply_journey_filters(query, start_date, end_date, entry_platform, entry_product):
+    """Apply date/product/platform filters to a contact_journeys query."""
+    if start_date:
+        query = query.gte("created_at", start_date.isoformat())
+    if end_date:
+        query = query.lte("created_at", f"{end_date.isoformat()}T23:59:59")
+    if entry_platform:
+        query = query.eq("entry_platform", entry_platform)
+    if entry_product:
+        query = query.eq("entry_product", entry_product)
+    return query
+
+
+async def _fetch_all_journeys(table, columns, sd, ed, entry_platform, entry_product, extra=None):
+    """
+    Fetch ALL matching rows from a journey-related table, paginating past
+    PostgREST's 1000-row cap. Parallel to _fetch_all but uses column names
+    from the contact_journeys schema.
+    """
+    db = await get_supabase()
+    page_size = 1000
+    offset = 0
+    rows: list[dict] = []
+    while True:
+        query = db.table(table).select(columns)
+        query = _apply_journey_filters(query, sd, ed, entry_platform, entry_product)
+        if extra is not None:
+            query = extra(query)
+        result = await query.range(offset, offset + page_size - 1).execute()
+        batch = result.data or []
+        rows.extend(batch)
+        if len(batch) < page_size:
+            return rows
+        offset += page_size
+
+
+# ── journey endpoints ──────────────────────────────────────────────────────
+
+@router.get("/journey/stats")
+async def get_journey_stats(
+    start_date: Optional[date] = Query(default=None),
+    end_date: Optional[date] = Query(default=None),
+    entry_platform: Optional[str] = Query(default=None),
+    entry_product: Optional[str] = Query(default=None),
+):
+    """Journey KPI cards — status distribution and aggregate metrics."""
+    sd = start_date or _default_start()
+    ed = end_date or date.today()
+
+    try:
+        rows = await _fetch_all_journeys(
+            "contact_journeys", "status, messages_sent", sd, ed, entry_platform, entry_product,
+        )
+    except Exception:
+        rows = []
+
+    total = len(rows)
+    active = sum(1 for r in rows if r.get("status") == "active")
+    paused = sum(1 for r in rows if r.get("status") == "paused")
+    completed = sum(1 for r in rows if r.get("status") == "completed")
+    opted_out = sum(1 for r in rows if r.get("status") == "opted_out")
+    suporte = sum(1 for r in rows if r.get("status") == "suporte")
+    total_messages = sum(r.get("messages_sent") or 0 for r in rows)
+
+    denominator = completed + opted_out
+    completion_rate = round(completed / denominator * 100, 1) if denominator > 0 else 0.0
+
+    return {
+        "total_journeys": total,
+        "active": active,
+        "paused": paused,
+        "completed": completed,
+        "opted_out": opted_out,
+        "suporte": suporte,
+        "total_messages_sent": total_messages,
+        "completion_rate": completion_rate,
+    }
+
+
+@router.get("/journey/leads")
+async def get_journey_leads(
+    start_date: Optional[date] = Query(default=None),
+    end_date: Optional[date] = Query(default=None),
+    entry_platform: Optional[str] = Query(default=None),
+    entry_product: Optional[str] = Query(default=None),
+    search: Optional[str] = Query(default=None),
+    state: Optional[str] = Query(default=None),
+    temperatura: Optional[str] = Query(default=None),
+    ticket: Optional[str] = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, le=100),
+):
+    """
+    Paginated leads — contact_journeys enriched with lead_insights by phone.
+    Supports search (full_name / phone) and filters (state, temperatura, ticket).
+    """
+    db = await get_supabase()
+
+    sd = start_date or _default_start()
+    ed = end_date or date.today()
+    offset = (page - 1) * limit
+
+    # --- 1. Fetch paginated contact_journeys ---
+    try:
+        query = db.table("contact_journeys").select("*", count="exact")
+        query = _apply_journey_filters(query, sd, ed, entry_platform, entry_product)
+
+        if state:
+            query = query.eq("current_state", state)
+        if search:
+            query = query.or_(f"full_name.ilike.*{search}*,phone.ilike.*{search}*")
+
+        query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
+        result = await query.execute()
+    except Exception:
+        return {"data": [], "total": 0, "page": page, "pages": 0}
+
+    total = result.count or 0
+    rows = result.data or []
+
+    # --- 2. Fetch lead_insights for every phone on this page ---
+    phones = [r["phone"] for r in rows if r.get("phone")]
+    insights_by_phone: dict[str, dict] = {}
+    if phones:
+        try:
+            ins_result = await (
+                db.table("lead_insights")
+                .select("*")
+                .in_("phone", phones)
+                .execute()
+            )
+            for i in (ins_result.data or []):
+                insights_by_phone[i["phone"]] = i
+        except Exception:
+            insights_by_phone = {}
+
+    # --- 3. Merge ---
+    data = []
+    for r in rows:
+        ins = insights_by_phone.get(r.get("phone"), {})
+
+        # Apply temperatura/ticket filters client-side after merge
+        if temperatura and ins.get("temperatura") != temperatura:
+            continue
+        if ticket and ins.get("ticket") != ticket:
+            continue
+
+        data.append({
+            "id": r.get("id"),
+            "phone": r.get("phone"),
+            "full_name": r.get("full_name"),
+            "current_state": r.get("current_state"),
+            "current_stage": r.get("current_stage"),
+            "tags": r.get("tags"),
+            "purchased_products": r.get("purchased_products"),
+            "day_offset": r.get("day_offset"),
+            "messages_sent": r.get("messages_sent"),
+            "status": r.get("status"),
+            "temperatura": ins.get("temperatura"),
+            "ticket": ins.get("ticket"),
+            "estagio": ins.get("estagio"),
+            "dores": ins.get("dores"),
+            "ambicoes": ins.get("ambicoes"),
+            "perfil": ins.get("perfil"),
+            "last_response_at": r.get("last_response_at"),
+            "created_at": r.get("created_at"),
+        })
+
+    return {
+        "data": data,
+        "total": total,
+        "page": page,
+        "pages": max(1, -(-total // limit)),
+    }
+
+
+@router.get("/journey/lead/{phone}")
+async def get_journey_lead(phone: str):
+    """
+    Single lead deep view. Merges contact_journeys, lead_insights, contacts,
+    and the 10 most recent journey_messages by phone.
+    """
+    db = await get_supabase()
+
+    profile: dict = {}
+
+    # --- contact_journey ---
+    try:
+        jr = await db.table("contact_journeys").select("*").eq("phone", phone).limit(1).execute()
+        journey = (jr.data or [None])[0]
+        if journey:
+            profile.update(journey)
+    except Exception:
+        pass
+
+    # --- lead_insights ---
+    try:
+        ir = await db.table("lead_insights").select("*").eq("phone", phone).limit(1).execute()
+        insights = (ir.data or [None])[0]
+        if insights:
+            for k, v in insights.items():
+                if k not in ("id", "phone", "created_at", "updated_at"):
+                    profile[k] = v
+    except Exception:
+        pass
+
+    # --- contacts ---
+    try:
+        cr = await db.table("contacts").select("*").eq("phone", phone).limit(1).execute()
+        contact = (cr.data or [None])[0]
+        if contact:
+            profile["email"] = contact.get("email")
+            profile["contact_created_at"] = contact.get("created_at")
+    except Exception:
+        pass
+
+    # --- recent messages ---
+    try:
+        mr = await (
+            db.table("journey_messages")
+            .select("*")
+            .eq("phone", phone)
+            .order("scheduled_for", desc=True)
+            .limit(10)
+            .execute()
+        )
+        profile["recent_messages"] = mr.data or []
+    except Exception:
+        profile["recent_messages"] = []
+
+    profile["phone"] = phone
+    return profile
+
+
+@router.get("/journey/daily")
+async def get_journey_daily(
+    start_date: Optional[date] = Query(default=None),
+    end_date: Optional[date] = Query(default=None),
+    entry_platform: Optional[str] = Query(default=None),
+    entry_product: Optional[str] = Query(default=None),
+):
+    """Journeys created + messages sent per day for the timeline chart."""
+    sd = start_date or _default_start()
+    ed = end_date or date.today()
+
+    try:
+        rows = await _fetch_all_journeys(
+            "contact_journeys", "created_at, messages_sent", sd, ed, entry_platform, entry_product,
+        )
+    except Exception:
+        rows = []
+
+    daily: dict = defaultdict(lambda: {"journeys_created": 0, "messages_sent": 0})
+    for r in rows:
+        day = (r.get("created_at") or "")[:10]
+        if not day:
+            continue
+        daily[day]["journeys_created"] += 1
+        daily[day]["messages_sent"] += r.get("messages_sent") or 0
+
+    return sorted(
+        [{"day": k, **v} for k, v in daily.items()],
+        key=lambda x: x["day"],
+    )
+
+
+@router.get("/journey/products")
+async def get_journey_products(
+    start_date: Optional[date] = Query(default=None),
+    end_date: Optional[date] = Query(default=None),
+    entry_platform: Optional[str] = Query(default=None),
+):
+    """
+    Product distribution — counts journeys by entry_product AND
+    aggregates distinct products across purchased_products arrays.
+    """
+    sd = start_date or _default_start()
+    ed = end_date or date.today()
+
+    try:
+        rows = await _fetch_all_journeys(
+            "contact_journeys", "entry_product, purchased_products",
+            sd, ed, entry_platform, None,
+        )
+    except Exception:
+        rows = []
+
+    entry_counts: dict[str, int] = defaultdict(int)
+    purchase_counts: dict[str, int] = defaultdict(int)
+
+    for r in rows:
+        ep = r.get("entry_product")
+        if ep:
+            entry_counts[ep] += 1
+
+        pp = r.get("purchased_products") or []
+        for p in pp:
+            if p:
+                purchase_counts[p] += 1
+
+    all_products = set(entry_counts.keys()) | set(purchase_counts.keys())
+    result = sorted(
+        [
+            {
+                "product": p,
+                "journeys": entry_counts.get(p, 0),
+                "purchases": purchase_counts.get(p, 0),
+            }
+            for p in all_products
+        ],
+        key=lambda x: x["journeys"] + x["purchases"],
+        reverse=True,
+    )
+
+    return result
+
+
+@router.get("/journey/insights")
+async def get_journey_insights():
+    """
+    Lead intelligence summary — temperature and ticket distributions
+    from the lead_insights table.
+    """
+    db = await get_supabase()
+
+    try:
+        result = await db.table("lead_insights").select("temperatura, ticket").execute()
+        rows = result.data or []
+    except Exception:
+        rows = []
+
+    temperatura = {"quente": 0, "morno": 0, "frio": 0}
+    ticket = {"high": 0, "low": 0, "unknown": 0}
+
+    for r in rows:
+        t = r.get("temperatura")
+        if t in temperatura:
+            temperatura[t] += 1
+
+        tk = r.get("ticket")
+        if tk in ticket:
+            ticket[tk] += 1
+
+    return {
+        "temperatura": temperatura,
+        "ticket": ticket,
+        "total_analyzed": len(rows),
+    }
