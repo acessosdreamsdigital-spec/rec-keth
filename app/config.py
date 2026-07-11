@@ -57,5 +57,15 @@ class Settings(BaseSettings):
     kiwify_webhook_token: str = ""
     assiny_webhook_token: str = ""
 
+    # Security — API key for admin/dashboard endpoints
+    # Leave empty to allow all (dev mode). Set in production.
+    api_key: str = ""
+
+    # Rate limiting
+    rate_limit_enabled: bool = True
+    rate_limit_webhooks: str = "120/minute"    # Kiwify/Assiny/Meta/Chatwoot
+    rate_limit_admin: str = "30/minute"         # Admin endpoints
+    rate_limit_agent: str = "30/minute"         # Agent endpoints
+
 
 settings = Settings()

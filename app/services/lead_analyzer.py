@@ -13,7 +13,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -21,9 +20,7 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+from app.config import settings as _settings
 
 ANALYSIS_SCHEMA = {
     "type": "json_schema",
@@ -61,8 +58,8 @@ async def analyze_lead(phone: str, force: bool = False) -> dict:
 
     Returns the analysis dict or {"status": "skipped"}.
     """
-    if not OPENAI_API_KEY:
-        logger.warning("OPENAI_API_KEY not set — skipping lead analysis")
+    if not _settings.openai_api_key:
+        logger.warning("_settings.openai_api_key not set — skipping lead analysis")
         return {"status": "skipped", "reason": "no_api_key"}
 
     # Collect all lead data
@@ -102,12 +99,12 @@ async def analyze_lead(phone: str, force: bool = False) -> dict:
 
 async def _collect_lead_data(phone: str) -> dict | None:
     """Collect all available data about a lead from Supabase + Redis."""
-    if not SUPABASE_URL or not SUPABASE_KEY:
+    if not _settings.supabase_url or not _settings.supabase_key:
         return None
 
     headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "apikey": _settings.supabase_key,
+        "Authorization": f"Bearer {_settings.supabase_key}",
     }
 
     data: dict = {}
@@ -115,7 +112,7 @@ async def _collect_lead_data(phone: str) -> dict | None:
     async def fetch(path: str, label: str) -> None:
         try:
             async with httpx.AsyncClient(timeout=10) as c:
-                r = await c.get(f"{SUPABASE_URL}/rest/v1/{path}", headers=headers)
+                r = await c.get(f"{_settings.supabase_url}/rest/v1/{path}", headers=headers)
                 if r.status_code == 200 and r.text:
                     result = r.json()
                     data[label] = result[0] if isinstance(result, list) and result else result
@@ -150,7 +147,7 @@ async def _collect_lead_data(phone: str) -> dict | None:
     # Try to get Redis conversation
     try:
         import redis.asyncio as aioredis
-        redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        redis_url = _settings.redis_url
         r = aioredis.from_url(redis_url)
         session_key = f"julia:session:{phone}"
         msgs = await r.lrange(session_key, 0, -1)
@@ -243,7 +240,7 @@ INSTRUÇÕES:
 async def _call_openai(prompt: str) -> dict:
     """Call GPT-4.1 Mini with structured output."""
     headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Authorization": f"Bearer {_settings.openai_api_key}",
         "Content-Type": "application/json",
     }
     payload = {
@@ -272,19 +269,19 @@ async def _call_openai(prompt: str) -> dict:
 
 async def _upsert_insight(phone: str, analysis: dict) -> None:
     """Insert or update lead_insights table."""
-    if not SUPABASE_URL or not SUPABASE_KEY:
+    if not _settings.supabase_url or not _settings.supabase_key:
         return
 
     headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "apikey": _settings.supabase_key,
+        "Authorization": f"Bearer {_settings.supabase_key}",
     }
 
     # Check if exists
     try:
         async with httpx.AsyncClient(timeout=10) as c:
             r = await c.get(
-                f"{SUPABASE_URL}/rest/v1/lead_insights?phone=eq.{phone}&select=id&limit=1",
+                f"{_settings.supabase_url}/rest/v1/lead_insights?phone=eq.{phone}&select=id&limit=1",
                 headers=headers,
             )
             existing = r.json() if r.text else []
@@ -314,13 +311,13 @@ async def _upsert_insight(phone: str, analysis: dict) -> None:
             if isinstance(existing, list) and existing:
                 rid = existing[0]["id"]
                 await c.patch(
-                    f"{SUPABASE_URL}/rest/v1/lead_insights?id=eq.{rid}",
+                    f"{_settings.supabase_url}/rest/v1/lead_insights?id=eq.{rid}",
                     headers=headers, json=row,
                 )
             else:
                 row["phone"] = phone
                 await c.post(
-                    f"{SUPABASE_URL}/rest/v1/lead_insights",
+                    f"{_settings.supabase_url}/rest/v1/lead_insights",
                     headers=headers, json=row,
                 )
     except Exception as exc:

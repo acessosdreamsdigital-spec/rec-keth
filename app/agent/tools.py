@@ -10,24 +10,29 @@ Tools:
 
 from __future__ import annotations
 
-import os
 from langchain_core.tools import tool
 import httpx
 
 from app.agent.prompt import CHECKOUT_LINKS, FORMULARIO_DDI, PRODUCT_FAQ, SUPORTE_ALUNOS
+from app.config import settings as _settings
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+
+def _supa_url() -> str:
+    return _settings.supabase_url
+
+
+def _supa_key() -> str:
+    return _settings.supabase_key
 
 
 def _supa(path: str) -> dict:
     """Sync helper to query Supabase REST API."""
-    if not SUPABASE_URL or not SUPABASE_KEY:
+    if not _supa_url() or not _supa_key():
         return {"error": "Database not configured"}
-    url = f"{SUPABASE_URL}/rest/v1/{path}"
+    url = f"{_supa_url()}/rest/v1/{path}"
     headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "apikey": _supa_key(),
+        "Authorization": f"Bearer {_supa_key()}",
     }
     try:
         r = httpx.get(url, headers=headers, timeout=10)
@@ -164,7 +169,7 @@ def verificar_cliente(whatsapp: str) -> str:
     journeys = _supa(
         f"contact_journeys?phone=eq.{phone}"
         f"&status=in.(active,paused)&select=current_state,current_stage,tags,"
-        f"purchased_products,day_offset,status,messages_sent,last_response_at&limit=1"
+        f"purchased_products,full_name,day_offset,status,messages_sent,last_response_at&limit=1"
     )
     journey = journeys[0] if isinstance(journeys, list) and journeys else {}
 
@@ -279,10 +284,10 @@ def classificar_lead(whatsapp: str, temperatura: str = "", ticket: str = "", est
     existing = _supa(f"lead_insights?phone=eq.{phone}&select=id&limit=1")
     if isinstance(existing, list) and existing:
         # Update
-        url = f"{SUPABASE_URL}/rest/v1/lead_insights?id=eq.{existing[0]['id']}"
+        url = f"{_supa_url()}/rest/v1/lead_insights?id=eq.{existing[0]['id']}"
         headers = {
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "apikey": _supa_key(),
+            "Authorization": f"Bearer {_supa_key()}",
             "Content-Type": "application/json",
             "Prefer": "return=minimal",
         }
@@ -292,10 +297,10 @@ def classificar_lead(whatsapp: str, temperatura: str = "", ticket: str = "", est
             pass
     else:
         updates["phone"] = phone
-        url = f"{SUPABASE_URL}/rest/v1/lead_insights"
+        url = f"{_supa_url()}/rest/v1/lead_insights"
         headers = {
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "apikey": _supa_key(),
+            "Authorization": f"Bearer {_supa_key()}",
             "Content-Type": "application/json",
             "Prefer": "return=minimal",
         }

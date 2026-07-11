@@ -246,7 +246,7 @@ async def handle_purchase_approved(
 
     db = await get_supabase()
 
-    contact_result = await db.table("contacts").select("id").eq("phone", phone).execute()
+    contact_result = await db.table("contacts").select("id, full_name").eq("phone", phone).execute()
     if not contact_result.data:
         # No contact = no active session, nothing to do
         return {"status": "skipped", "reason": "contact_not_found"}
