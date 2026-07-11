@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.config import settings
 from app.database import get_supabase
-from app.services.journey_engine import schedule_next
+from app.services.journey_engine import evaluate_silence, schedule_next
 from app.services.meta_analytics import sync_costs
 from app.services.whatsapp import WhatsAppSendError, send_template
 
@@ -271,6 +271,42 @@ async def _retry_or_fail_journey(db, msg: dict, error: str, transient: bool) -> 
         logger.error(f"Journey failed msg {msg['id']} after {attempts} attempt(s): {error}")
 
 
+async def _check_journey_silence() -> None:
+    """
+    Periodically scans active journeys for silence > 48h.
+    If a student hasn't responded since the last message, transitions
+    from ativacao/engajada → fria.
+    """
+    db = await get_supabase()
+
+    # Find journeys with sent messages but no recent response
+    result = await (
+        db.table("contact_journeys")
+        .select("id, current_state, last_message_sent_at, last_response_at")
+        .eq("status", "active")
+        .not_.is_("last_message_sent_at", "null")
+        .execute()
+    )
+
+    journeys = result.data or []
+    checked = 0
+
+    for j in journeys:
+        # Only check journeys in states that can transition to fria
+        if j["current_state"] not in ("ativacao", "engajada"):
+            continue
+        try:
+            res = await evaluate_silence(j["id"])
+            if res.get("status") == "transitioned_to_fria":
+                logger.info(f"Journey {j['id']}: silence → fria ({res.get('silence_hours', 0):.0f}h)")
+            checked += 1
+        except Exception:
+            logger.exception(f"Error checking silence for journey {j['id']}")
+
+    if checked:
+        logger.debug(f"Silence check: {checked} journey(s) evaluated")
+
+
 async def run_scheduler(interval_seconds: int = 30) -> None:
     """Runs forever, processing due recovery + journey messages every `interval_seconds`."""
     logger.info(f"Scheduler started (interval={interval_seconds}s)")
@@ -278,6 +314,7 @@ async def run_scheduler(interval_seconds: int = 30) -> None:
         try:
             await _process_due_messages()          # recovery messages (existing)
             await _process_due_journey_messages()   # journey messages (new)
+            await _check_journey_silence()          # auto-transition to fria
         except Exception as exc:
             logger.error(f"Scheduler loop error: {exc}")
         await asyncio.sleep(interval_seconds)
