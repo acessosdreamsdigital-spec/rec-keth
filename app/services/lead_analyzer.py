@@ -15,6 +15,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from typing import Optional
+from urllib.parse import quote
 
 import httpx
 
@@ -109,6 +110,10 @@ async def _collect_lead_data(phone: str) -> dict | None:
 
     data: dict = {}
 
+    # A raw "+" in a query string is read as a space by PostgREST, so
+    # eq.+5511... would never match the stored "+5511..." value. Encode it.
+    phone_q = quote(phone, safe="")
+
     async def fetch(path: str, label: str) -> None:
         try:
             async with httpx.AsyncClient(timeout=10) as c:
@@ -122,10 +127,10 @@ async def _collect_lead_data(phone: str) -> dict | None:
 
     # Fetch from all tables in parallel
     await asyncio.gather(
-        fetch(f"contacts?phone=eq.{phone}&select=*&limit=1", "contact"),
-        fetch(f"leads?whatsapp=eq.{phone}&select=*&limit=1", "lead"),
-        fetch(f"contact_journeys?phone=eq.{phone}&select=*&limit=1&order=updated_at.desc", "journey"),
-        fetch(f"lead_insights?phone=eq.{phone}&select=*&limit=1", "insight"),
+        fetch(f"contacts?phone=eq.{phone_q}&select=*&limit=1", "contact"),
+        fetch(f"leads?whatsapp=eq.{phone_q}&select=*&limit=1", "lead"),
+        fetch(f"contact_journeys?phone=eq.{phone_q}&select=*&limit=1&order=updated_at.desc", "journey"),
+        fetch(f"lead_insights?phone=eq.{phone_q}&select=*&limit=1", "insight"),
     )
 
     # Also fetch recent recovery sessions
@@ -144,15 +149,18 @@ async def _collect_lead_data(phone: str) -> dict | None:
             "messages",
         )
 
-    # Try to get Redis conversation
+    # Try to get Redis conversation. LangChain's RedisChatMessageHistory
+    # (used by the agent, see app/agent/engine.py) stores messages under
+    # "message_store:<session_id>", newest first (LPUSH) — not the bare
+    # session_id, and not oldest-first.
     try:
         import redis.asyncio as aioredis
         redis_url = _settings.redis_url
         r = aioredis.from_url(redis_url)
-        session_key = f"julia:session:{phone}"
-        msgs = await r.lrange(session_key, 0, -1)
+        session_key = f"message_store:julia:session:{phone}"
+        msgs = await r.lrange(session_key, 0, 19)  # 20 most recent, newest first
         if msgs:
-            data["conversation"] = [json.loads(m) for m in msgs[-20:]]  # last 20 messages
+            data["conversation"] = [json.loads(m) for m in reversed(msgs)]  # chronological order
         await r.aclose()
     except Exception:
         data["conversation"] = []
@@ -281,7 +289,7 @@ async def _upsert_insight(phone: str, analysis: dict) -> None:
     try:
         async with httpx.AsyncClient(timeout=10) as c:
             r = await c.get(
-                f"{_settings.supabase_url}/rest/v1/lead_insights?phone=eq.{phone}&select=id&limit=1",
+                f"{_settings.supabase_url}/rest/v1/lead_insights?phone=eq.{quote(phone, safe='')}&select=id&limit=1",
                 headers=headers,
             )
             existing = r.json() if r.text else []

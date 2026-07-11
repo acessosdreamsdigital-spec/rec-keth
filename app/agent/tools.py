@@ -10,11 +10,14 @@ Tools:
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from langchain_core.tools import tool
 import httpx
 
 from app.agent.prompt import CHECKOUT_LINKS, FORMULARIO_DDI, PRODUCT_FAQ, SUPORTE_ALUNOS
 from app.config import settings as _settings
+from app.utils.phone import normalize_phone
 
 
 def _supa_url() -> str:
@@ -152,22 +155,23 @@ def verificar_cliente(whatsapp: str) -> str:
     Args:
         whatsapp: Numero do WhatsApp do lead (ex: 5521984103779)
     """
-    # Normalize phone
-    phone = whatsapp.strip().replace("+", "").replace("-", "").replace(" ", "")
-    if not phone.startswith("55"):
-        phone = "55" + phone
+    # Normalize phone to the DB's canonical +55XXXXXXXXXXX format, then
+    # percent-encode for the URL — a raw "+" in a query string is read as
+    # a space by PostgREST, so eq.+5511... would never match anything.
+    phone = normalize_phone(whatsapp)
+    phone_q = quote(phone, safe="")
 
     # 1. Check leads table
-    leads = _supa(f"leads?whatsapp=eq.{phone}&select=*&limit=1")
+    leads = _supa(f"leads?whatsapp=eq.{phone_q}&select=*&limit=1")
     lead = leads[0] if isinstance(leads, list) and leads else {}
 
     # 2. Check contacts
-    contacts = _supa(f"contacts?phone=eq.{phone}&select=*&limit=1")
+    contacts = _supa(f"contacts?phone=eq.{phone_q}&select=*&limit=1")
     contact = contacts[0] if isinstance(contacts, list) and contacts else {}
 
     # 3. Check journey
     journeys = _supa(
-        f"contact_journeys?phone=eq.{phone}"
+        f"contact_journeys?phone=eq.{phone_q}"
         f"&status=in.(active,paused)&select=current_state,current_stage,tags,"
         f"purchased_products,full_name,day_offset,status,messages_sent,last_response_at&limit=1"
     )
@@ -230,7 +234,7 @@ def verificar_cliente(whatsapp: str) -> str:
         parts.append(f"🕐 Última interação: {lead['last_interaction']}")
 
     # 5. Check lead_insights
-    insights = _supa(f"lead_insights?phone=eq.{phone}&select=*&limit=1")
+    insights = _supa(f"lead_insights?phone=eq.{phone_q}&select=*&limit=1")
     insight = insights[0] if isinstance(insights, list) and insights else {}
     if insight:
         temp = insight.get("temperatura", "frio")
@@ -261,9 +265,8 @@ def classificar_lead(whatsapp: str, temperatura: str = "", ticket: str = "", est
         ticket: "high" ou "low" (deixe vazio se nao mudou)
         estagio: "consciencia", "consideracao", "decisao", ou "cliente" (deixe vazio se nao mudou)
     """
-    phone = whatsapp.strip().replace("+", "").replace("-", "").replace(" ", "")
-    if not phone.startswith("55"):
-        phone = "55" + phone
+    phone = normalize_phone(whatsapp)
+    phone_q = quote(phone, safe="")
 
     updates = {}
     if temperatura and temperatura in ("quente", "morno", "frio"):
@@ -281,7 +284,7 @@ def classificar_lead(whatsapp: str, temperatura: str = "", ticket: str = "", est
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     # Upsert
-    existing = _supa(f"lead_insights?phone=eq.{phone}&select=id&limit=1")
+    existing = _supa(f"lead_insights?phone=eq.{phone_q}&select=id&limit=1")
     if isinstance(existing, list) and existing:
         # Update
         url = f"{_supa_url()}/rest/v1/lead_insights?id=eq.{existing[0]['id']}"
