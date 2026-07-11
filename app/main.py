@@ -127,7 +127,10 @@ app.include_router(chatwoot.router)  # Chatwoot forwards messages here
 # ── Protected routes (API key required) ──
 app.include_router(admin.router, dependencies=[Depends(verify_api_key)])
 app.include_router(agent.router, dependencies=[Depends(verify_api_key)])
-app.include_router(dashboard.router, dependencies=[Depends(verify_api_key)])
+
+# ── Dashboard — page requires API key, AJAX endpoints are public ──
+# (data endpoints are called by the already-authenticated SPA)
+app.include_router(dashboard.router)
 
 
 @app.get("/health", tags=["infra"])

@@ -21,10 +21,11 @@ from collections import defaultdict
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse
 
 from app.database import get_supabase
+from app.utils.auth import verify_api_key
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -32,7 +33,7 @@ _STATIC_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "static")
 
 
 @router.get("/", include_in_schema=False)
-async def serve_dashboard():
+async def serve_dashboard(_key: str = Depends(verify_api_key)):
     return FileResponse(os.path.join(_STATIC_DIR, "index.html"))
 
 
