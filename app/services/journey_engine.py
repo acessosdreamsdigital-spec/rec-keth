@@ -474,31 +474,41 @@ def _classify_keywords(text: str) -> Optional[str]:
 async def _classify_diagnostic(text: str) -> str:
     """
     Classify the student's response to the diagnostic question (template 03).
-    Uses keyword matching first. Falls back to GPT-4.1 Mini for complex responses.
-    Falls back to 'conteudo' (default) if classification fails.
-    """
-    # 1. Try keywords (fast, free, covers ~70% of cases)
-    route = _classify_keywords(text)
-    if route:
-        logger.info(f"Diagnostic classified via keywords: {route}")
-        return route
+    Uses GPT-4.1 Mini as the primary judge — analyzes intent, maturity,
+    and context to route to the best product. Falls back to keywords
+    only if GPT is unavailable (API down, timeout).
 
-    # 2. Try GPT-4.1 Mini (for nuanced responses)
+    Returns a route slug: feed, conteudo, mpi, manual_ddi, formacao_ddi,
+    diagnostico, or kasulo.
+    """
+    # 1. Primary: GPT-4.1 Mini as judge (nuanced, contextual)
     try:
-        route = await _classify_with_gpt(text)
+        route = await _judge_with_gpt(text)
         if route:
-            logger.info(f"Diagnostic classified via GPT: {route}")
+            logger.info(f"Diagnostic: GPT judge → {route}")
             return route
     except Exception as exc:
-        logger.warning(f"GPT classification failed, using default: {exc}")
+        logger.warning(f"GPT judge failed, falling back to keywords: {exc}")
 
-    # 3. Default: Conteúdo Wow (most common path)
-    logger.info(f"Diagnostic defaulting to 'conteudo' for: {text[:80]}...")
+    # 2. Fallback: keyword matching (only if GPT is down)
+    route = _classify_keywords(text)
+    if route:
+        logger.info(f"Diagnostic: keyword fallback → {route}")
+        return route
+
+    # 3. Last resort: default to conteudo
+    logger.info(f"Diagnostic: default → conteudo")
     return "conteudo"
 
 
-async def _classify_with_gpt(text: str) -> Optional[str]:
-    """Use GPT-4.1 Mini to classify the diagnostic response."""
+async def _judge_with_gpt(text: str) -> Optional[str]:
+    """
+    Use GPT-4.1 Mini as an intelligent judge to classify the student's
+    diagnostic response. Analyzes intent, digital maturity, and pain points
+    to recommend the best next product.
+
+    The judge returns a JSON with: route, confidence, reasoning.
+    """
     import json
     import os
 
@@ -506,55 +516,91 @@ async def _classify_with_gpt(text: str) -> Optional[str]:
     if not api_key:
         return None
 
-    url = "https://api.openai.com/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
+    prompt = f"""Você é um analista de jornada de compra da The Differs Company.
+Sua função é ler a resposta de um aluno e decidir qual produto faz mais sentido
+como próximo passo na jornada dele.
 
-    prompt = f"""Classifique a resposta abaixo em UMA das 7 categorias. Responda APENAS com a palavra-chave.
+O aluno comprou o CapCut Wow (curso de edição de vídeo) e respondeu à pergunta:
+"Qual é o seu principal objetivo hoje no digital?"
 
-RESPOSTA DO ALUNO: "{text}"
+RESPOSTA DO ALUNO:
+"{text}"
 
-Categorias:
-- feed: identidade visual, estética, cores, capas, design do feed
-- conteudo: ideias, criatividade, o que postar, crescimento no Instagram, estratégia de conteúdo
-- mpi: monetização, criar curso, infoproduto, ganhar dinheiro, vender
-- manual_ddi: marca pessoal, posicionamento, autoridade (iniciante)
-- formacao_ddi: negócio estruturado, formação completa, comunidade (experiente)
-- diagnostico: precisa de análise individual, situação específica, não sabe qual caminho
-- kasulo: quer acelerar, já produz, quer acompanhamento premium, mentoría
+ANALISE a resposta considerando:
+1. Qual problema principal o aluno quer resolver?
+2. Qual o nível de maturidade digital dele? (iniciante, intermediário, experiente)
+3. Ele está mais focado em aparência/visual, estratégia/conteúdo, ou negócio/monetização?
+4. Ele tem potencial para high ticket (Formação, Diagnóstico, Kasulo)?
 
-Palavra-chave:"""
+PRODUTOS DISPONÍVEIS (do mais simples ao mais premium):
+- feed: Feed Wow (R$97) — identidade visual, estética do feed, cores, capas.
+  Para quem quer melhorar a APARÊNCIA do perfil.
+- conteudo: Conteúdo Wow (R$297) — Método FLOW, ideias, estratégia de conteúdo,
+  o que postar, como crescer no Instagram. Para quem quer CRESCER.
+- mpi: Meu Primeiro Infoproduto (R$49) — criar seu primeiro curso em 7 dias.
+  Para quem quer MONETIZAR conhecimento.
+- manual_ddi: Manual DDI (R$497) — kit de marca pessoal e posicionamento.
+  Para quem quer construir AUTORIDADE e MARCA PESSOAL (iniciante nisso).
+- formacao_ddi: Formação DDI (R$2.997) — programa completo de 1 ano com
+  comunidade, mentorias, IAs. Para quem já produz conteúdo e quer um NEGÓCIO
+  DIGITAL ESTRUTURADO.
+- diagnostico: Diagnóstico Estratégico (R$3.000-5.000) — análise individual
+  com plano personalizado. Para casos ESPECÍFICOS que não se encaixam em
+  produtos padrão, ou quando o aluno está muito confuso/perdido.
+- kasulo: Mentoria Kasulo (R$15.500) — 6 meses de acompanhamento com os 3 sócios.
+  Para quem JÁ EXECUTA, tem resultados, e quer ACELERAR com mentoria premium.
+
+RETORNE APENAS um JSON (sem markdown, sem explicação extra):
+{{"route": "conteudo", "reasoning": "breve justificativa em 1 frase"}}"""
 
     payload = {
         "model": "gpt-4.1-mini",
         "messages": [
-            {"role": "system", "content": "Você classifica respostas de alunos. Responda APENAS com uma palavra."},
+            {"role": "system", "content": "Você é um juiz analista de jornada de compra. Retorne APENAS JSON."},
             {"role": "user", "content": prompt},
         ],
-        "temperature": 0.1,
-        "max_tokens": 20,
+        "temperature": 0.3,
+        "max_tokens": 200,
     }
 
     import httpx
     async with httpx.AsyncClient(timeout=15) as client:
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
         resp = await client.post(url, json=payload, headers=headers)
         if resp.status_code != 200:
+            logger.warning(f"GPT judge HTTP {resp.status_code}")
             return None
         data = resp.json()
-        result = data["choices"][0]["message"]["content"].strip().lower()
+        content = data["choices"][0]["message"]["content"].strip()
 
-    # Normalize the response
+    # Parse JSON — handle markdown wrapping and extra text
+    content = content.replace("```json", "").replace("```", "").strip()
+    try:
+        result = json.loads(content)
+    except json.JSONDecodeError:
+        # Try to extract JSON from the response
+        import re
+        match = re.search(r'\{[^}]+\}', content)
+        if match:
+            try:
+                result = json.loads(match.group())
+            except json.JSONDecodeError:
+                return None
+        else:
+            return None
+
+    route = result.get("route", "").strip().lower()
+    reasoning = result.get("reasoning", "")
+    if reasoning:
+        logger.info(f"GPT judge reasoning: {reasoning}")
+
     valid_routes = set(ROUTE_TO_STATE.keys())
-    result_clean = result.replace(" ", "_").replace("-", "_").rstrip(".")
-    if result_clean in valid_routes:
-        return result_clean
-
-    # Try to find partial match
-    for route in valid_routes:
-        if route in result_clean:
-            return route
+    if route in valid_routes:
+        return route
 
     return None
 
