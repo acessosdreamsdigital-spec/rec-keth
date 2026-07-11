@@ -1,17 +1,45 @@
 """
-LangChain tools for Júlia — WhatsApp sales recovery agent.
+LangChain tools for Júlia — consultative sales + customer care agent.
 
 Tools:
-- consultar_produto: look up detailed product info from the embedded FAQ
-- enviar_checkout: send a checkout link to the lead
+- consultar_produto: product FAQ lookup
+- enviar_checkout: send purchase link
+- verificar_cliente: check what customer bought + journey status (DB)
+- enviar_formulario / enviar_suporte: redirect links
 """
 
 from __future__ import annotations
 
+import os
 from langchain_core.tools import tool
+import httpx
 
 from app.agent.prompt import CHECKOUT_LINKS, FORMULARIO_DDI, PRODUCT_FAQ, SUPORTE_ALUNOS
 
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+
+
+def _supa(path: str) -> dict:
+    """Sync helper to query Supabase REST API."""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return {"error": "Database not configured"}
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+    }
+    try:
+        r = httpx.get(url, headers=headers, timeout=10)
+        r.raise_for_status()
+        return r.json() if r.text else {}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════
+# Product & checkout tools (unchanged)
+# ═══════════════════════════════════════════════════════════════
 
 @tool
 def consultar_produto(produto: str) -> str:
@@ -27,7 +55,6 @@ def consultar_produto(produto: str) -> str:
     """
     produto = produto.lower().strip().replace(" ", "_").replace("ç", "c").replace("ã", "a").replace("õ", "o")
 
-    # Fuzzy match
     slug_map = {
         "capcut": "capcut_wow", "capcut_wow": "capcut_wow",
         "conteudo": "conteudo_wow", "conteudo_wow": "conteudo_wow", "conteudos_wow": "conteudo_wow",
@@ -45,11 +72,7 @@ def consultar_produto(produto: str) -> str:
 
     if not info:
         available = ", ".join(PRODUCT_FAQ.keys())
-        return (
-            f"Nao encontrei esse produto especifico. "
-            f"Os produtos disponiveis sao: {available}. "
-            f"Tenta me falar de outro jeito qual produto o lead perguntou?"
-        )
+        return f"Produtos disponiveis: {available}. Qual desses o lead perguntou?"
 
     lines = [
         f"📦 {info['nome']}",
@@ -57,26 +80,15 @@ def consultar_produto(produto: str) -> str:
         f"💰 Preco: {info['preco']}",
         f"👤 Para quem: {info['para_quem']}",
     ]
-
-    if "metodo" in info:
-        lines.append(f"🧠 Metodo: {info['metodo']}")
-    if "pilares" in info:
-        lines.append(f"🏛️ Pilares: {info['pilares']}")
-    if "entregaveis" in info:
-        lines.append(f"📦 Entregaveis: {info['entregaveis']}")
-    if "ias" in info:
-        lines.append(f"🤖 IAs incluidas: {info['ias']}")
-    if "bonus" in info:
-        lines.append(f"🎁 Bonus: {info['bonus']}")
-    if "acesso" in info:
-        lines.append(f"⏱️ Acesso: {info['acesso']}")
-    if "time" in info:
-        lines.append(f"👥 Time: {info['time']}")
-    if "prova_social" in info:
-        lines.append(f"📊 Prova social: {info['prova_social']}")
-    if "criadores" in info:
-        lines.append(f"👥 Criadores: {info['criadores']}")
-
+    for field, label in [
+        ("metodo", "🧠 Metodo"), ("pilares", "🏛️ Pilares"),
+        ("entregaveis", "📦 Entregaveis"), ("ias", "🤖 IAs incluidas"),
+        ("bonus", "🎁 Bonus"), ("acesso", "⏱️ Acesso"),
+        ("time", "👥 Time"), ("prova_social", "📊 Prova social"),
+        ("criadores", "👥 Criadores"),
+    ]:
+        if field in info:
+            lines.append(f"{label}: {info[field]}")
     return "\n".join(lines)
 
 
@@ -88,50 +100,128 @@ def enviar_checkout(produto: str, tipo: str = "kiwify") -> str:
     Envie UMA UNICA VEZ por produto.
 
     Args:
-        produto: Slug do produto (capcut_wow, conteudo_wow, feed_wow,
-                 formacao_ddi, manual_ddi, mpi, combo_wow)
-        tipo: "kiwify" (padrao, prioridade) ou "assiny" (backup, se lead
-              reportar problema com Kiwify) ou "pagina" (pagina de vendas,
-              se lead quiser ver mais antes de comprar)
+        produto: capcut_wow, conteudo_wow, feed_wow, formacao_ddi,
+                 manual_ddi, mpi, combo_wow
+        tipo: "kiwify" (padrao), "assiny" (backup), "pagina" (pagina de vendas)
     """
     links = CHECKOUT_LINKS.get(produto.lower())
     if not links:
-        return f"Nao tenho o link de checkout para '{produto}'. Produtos com link: {', '.join(CHECKOUT_LINKS.keys())}"
-
+        return f"Sem link para '{produto}'. Disponiveis: {', '.join(CHECKOUT_LINKS.keys())}"
     if tipo == "pagina" and "pagina" in links:
         return f"LINK_PAGINA_VENDAS: {links['pagina']}"
-
     if tipo == "assiny" and "assiny" in links:
         return f"LINK_CHECKOUT: {links['assiny']}"
-
     if tipo == "kiwify" and "kiwify" in links:
         return f"LINK_CHECKOUT: {links['kiwify']}"
-
-    # Fallback: return whatever is available
     for fallback in ("kiwify", "assiny", "pagina"):
         if fallback in links:
             return f"LINK_CHECKOUT: {links[fallback]}"
-
     return f"Link nao disponivel para {produto}"
 
 
 @tool
 def enviar_formulario() -> str:
-    """
-    Envia o link do formulario The Differs Co. para quando o lead:
-    - Nao sabe qual produto e ideal pra ele
-    - Quer orientacao personalizada
-    - Pergunta sobre mentoria/consultoria
-    - Precisa de analise individual do perfil
-    """
+    """Envia o link do formulario quando o lead precisa de orientacao personalizada."""
     return f"LINK_FORMULARIO: {FORMULARIO_DDI}"
 
 
 @tool
 def enviar_suporte() -> str:
-    """
-    Envia o link do suporte de alunos. Use SOMENTE quando o lead
-    JA FOR aluno e tiver problema tecnico (acesso, login, plataforma).
-    Julia NAO faz suporte tecnico.
-    """
+    """Envia o link do suporte de alunos (problemas tecnicos). Julia NAO faz suporte."""
     return f"LINK_SUPORTE: {SUPORTE_ALUNOS}"
+
+
+# ═══════════════════════════════════════════════════════════════
+# Database tools — customer context
+# ═══════════════════════════════════════════════════════════════
+
+@tool
+def verificar_cliente(whatsapp: str) -> str:
+    """
+    Verifica tudo sobre o cliente no banco: quais produtos comprou,
+    em que etapa da jornada esta, ultima interacao, status.
+    Use sempre que iniciar uma conversa pra entender o contexto do lead.
+    Tambem use quando o lead perguntar "qual produto eu comprei?" ou
+    "como esta meu acesso?".
+
+    Args:
+        whatsapp: Numero do WhatsApp do lead (ex: 5521984103779)
+    """
+    # Normalize phone
+    phone = whatsapp.strip().replace("+", "").replace("-", "").replace(" ", "")
+    if not phone.startswith("55"):
+        phone = "55" + phone
+
+    # 1. Check leads table
+    leads = _supa(f"leads?whatsapp=eq.{phone}&select=*&limit=1")
+    lead = leads[0] if isinstance(leads, list) and leads else {}
+
+    # 2. Check contacts
+    contacts = _supa(f"contacts?phone=eq.{phone}&select=*&limit=1")
+    contact = contacts[0] if isinstance(contacts, list) and contacts else {}
+
+    # 3. Check journey
+    journeys = _supa(
+        f"contact_journeys?phone=eq.{phone}"
+        f"&status=in.(active,paused)&select=current_state,current_stage,tags,"
+        f"purchased_products,day_offset,status,messages_sent,last_response_at&limit=1"
+    )
+    journey = journeys[0] if isinstance(journeys, list) and journeys else {}
+
+    # 4. Check recovery sessions (converted = comprou)
+    sessions = _supa(
+        f"recovery_sessions?select=product_name,status,created_at&contact_id=eq."
+        f"{contact.get('id', '00000000-0000-0000-0000-000000000000')}"
+        f"&status=eq.converted&order=created_at.desc&limit=10"
+    )
+    purchases = []
+    if isinstance(sessions, list):
+        seen = set()
+        for s in sessions:
+            pn = s.get("product_name", "")
+            if pn and pn not in seen:
+                purchases.append(pn)
+                seen.add(pn)
+
+    # Build context
+    nome = (
+        lead.get("nome")
+        or contact.get("full_name")
+        or journey.get("full_name")
+        or "Cliente"
+    )
+
+    parts = [f"👤 Nome: {nome}"]
+
+    if purchases:
+        parts.append(f"🛒 Produtos comprados: {', '.join(purchases)}")
+    elif journey.get("purchased_products"):
+        prods = journey["purchased_products"]
+        parts.append(f"🛒 Produtos: {', '.join(prods) if isinstance(prods, list) else prods}")
+
+    if journey:
+        state_map = {
+            "ativacao": "Acabou de comprar (ativação)",
+            "engajada": "Engajada com o curso",
+            "acel_feed": "Interesse em Feed Wow",
+            "acel_conteudo": "Interesse em Conteúdo Wow",
+            "acel_mpi": "Interesse em Meu Primeiro Infoproduto",
+            "acel_manual_ddi": "Interesse em Manual DDI",
+            "acel_formacao_ddi": "Interesse em Formação DDI",
+            "acel_diagnostico": "Interesse em Diagnóstico",
+            "acel_kasulo": "Interesse em Kasulo",
+            "fria": "Trilha fria (sem interação recente)",
+            "paused": "Jornada pausada (conversando com humano)",
+            "suporte": "Foi para suporte",
+        }
+        state_name = state_map.get(journey.get("current_state", ""), journey.get("current_state", "?"))
+        status = journey.get("status", "?")
+        status_label = "🟢 Ativa" if status == "active" else "🟡 Pausada" if status == "paused" else status
+        parts.append(f"📍 Jornada: {state_name} ({status_label})")
+        parts.append(f"📅 Dia na jornada: D+{journey.get('day_offset', 0)}")
+        parts.append(f"✉️ Mensagens enviadas: {journey.get('messages_sent', 0)}")
+
+    if lead.get("last_interaction"):
+        parts.append(f"🕐 Última interação: {lead['last_interaction']}")
+
+    return "\n".join(parts)

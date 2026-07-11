@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     # Leave empty to disable forwarding
     chatwoot_webhook_url: str = ""
 
+    # Chatwoot API — send agent replies through Chatwoot so they appear in the UI
+    chatwoot_api_url: str = ""
+    chatwoot_api_token: str = ""
+
     # Supabase
     supabase_url: str
     supabase_key: str

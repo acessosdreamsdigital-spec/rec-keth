@@ -29,7 +29,8 @@ async def chatwoot_webhook(request: Request):
 
     Chatwoot sends a webhook for every message (incoming + outgoing).
     We process incoming student messages through the journey engine
-    and Júlia agent. Outgoing agent messages pause the journey.
+    and Júlia agent. Agent replies are sent BACK through Chatwoot's
+    API so they appear in the Chatwoot conversation view.
     """
     try:
         body = await request.json()
@@ -40,17 +41,15 @@ async def chatwoot_webhook(request: Request):
     events = body if isinstance(body, list) else [body]
 
     for event in events:
-        # Different Chatwoot webhook versions have different payload shapes
-        # Try to extract message data from common formats
         message_type = event.get("message_type") or event.get("event", "")
         private = event.get("private", False)
 
-        # Extract sender info
         sender = event.get("sender") or {}
         contact = event.get("contact") or {}
         conversation = event.get("conversation") or {}
+        account = event.get("account") or {}
 
-        # The phone number field varies
+        # Extract phone
         phone_raw = (
             sender.get("phone_number")
             or sender.get("identifier")
@@ -58,36 +57,31 @@ async def chatwoot_webhook(request: Request):
             or contact.get("identifier")
             or ""
         )
-
         if not phone_raw:
-            # Try conversation's contact_inbox
             ci = conversation.get("contact_inbox") or {}
             phone_raw = ci.get("source_id") or ""
-
         if not phone_raw:
-            logger.debug(f"Chatwoot event without phone, skipping: {event.get('id')}")
             continue
 
         phone = normalize_phone(phone_raw)
-
-        # Extract message content
         content = event.get("content") or ""
-        msg_type = message_type
+
+        # Extract Chatwoot IDs for replying
+        account_id = account.get("id")
+        conversation_id = conversation.get("id") or conversation.get("display_id")
 
         # Determine direction
         from_me = (
-            msg_type == "outgoing"
+            message_type == "outgoing"
             or sender.get("role") == "agent"
             or sender.get("type") == "user"
             or event.get("message", {}).get("sender_type") == "User"
         )
 
         if from_me:
-            # Human agent replied → pause journey so templates don't interrupt
             await _handle_agent_reply(phone)
         else:
-            # Student message → process
-            await _handle_student_message(phone, content)
+            await _handle_student_message(phone, content, account_id, conversation_id)
 
     return {"status": "ok"}
 
@@ -129,13 +123,15 @@ async def _handle_agent_reply(phone: str) -> None:
     logger.info(f"Journey paused for {phone} — agent is talking")
 
 
-async def _handle_student_message(phone: str, content: str) -> None:
+async def _handle_student_message(
+    phone: str,
+    content: str,
+    account_id: str | None = None,
+    conversation_id: str | None = None,
+) -> None:
     """Process a student message through journey engine + Júlia agent."""
-    # Resume journey if paused (student came back after human conversation)
     await _resume_journey(phone)
 
-    # Detect if this looks like a button click from template
-    # (Chatwoot receives interactive button clicks as text with the button label)
     button_keywords = [
         "Acesso certo", "Preciso de ajuda", "Já editei", "Ainda não comecei",
         "Quero entender", "Quero conhecer", "Quero saber mais", "Agora não",
@@ -151,25 +147,20 @@ async def _handle_student_message(phone: str, content: str) -> None:
 
     button_text = None
     text_body = content
-
     if content.strip() in button_keywords:
         button_text = content.strip()
         text_body = None
 
-    # Process through journey engine
     try:
         result = await process_response(
-            phone=phone,
-            button_text=button_text,
-            text_body=text_body,
+            phone=phone, button_text=button_text, text_body=text_body,
         )
         logger.info(f"Journey: {phone} → {result.get('transition', 'no_change')}")
     except Exception:
         logger.exception(f"Journey error for {phone}")
 
-    # If it's a text message that needs agent handling
     if text_body and not button_text:
-        await _call_agent(phone, text_body)
+        await _call_agent(phone, text_body, account_id, conversation_id)
 
 
 async def _resume_journey(phone: str) -> None:
@@ -198,16 +189,72 @@ async def _resume_journey(phone: str) -> None:
         logger.info(f"Journey resumed for {phone}")
 
 
-async def _call_agent(phone: str, message: str) -> None:
-    """Route a text message to Júlia agent and send reply."""
+async def _call_agent(
+    phone: str,
+    message: str,
+    account_id: str | None = None,
+    conversation_id: str | None = None,
+) -> None:
+    """Route a text message to Júlia agent and send reply via Chatwoot API
+    so the reply appears in Chatwoot's conversation view."""
     from app.agent.engine import julia_reply
-    from app.services.whatsapp import send_text
 
     try:
         result = await julia_reply(phone=phone, message=message)
         reply = result.get("reply", "")
         if reply:
-            await send_text(phone=phone, body=reply)
+            # Send via Chatwoot API so message appears in Chatwoot UI
+            if account_id and conversation_id:
+                sent = await _send_chatwoot_message(account_id, conversation_id, reply)
+                if not sent:
+                    # Fallback: send directly via WhatsApp
+                    from app.services.whatsapp import send_text
+                    await send_text(phone=phone, body=reply)
+            else:
+                # No Chatwoot context — send directly
+                from app.services.whatsapp import send_text
+                await send_text(phone=phone, body=reply)
             logger.info(f"Agent reply sent to {phone}: {reply[:80]}...")
     except Exception:
         logger.exception(f"Agent error for {phone}")
+
+
+async def _send_chatwoot_message(
+    account_id: str | int,
+    conversation_id: str | int,
+    content: str,
+) -> bool:
+    """Send a message through Chatwoot's API so it appears in the conversation."""
+    import httpx
+    from app.config import settings
+
+    if not settings.chatwoot_api_url or not settings.chatwoot_api_token:
+        logger.warning("Chatwoot API not configured — message not sent to Chatwoot")
+        return False
+
+    url = (
+        f"{settings.chatwoot_api_url.rstrip('/')}"
+        f"/api/v1/accounts/{account_id}/conversations/{conversation_id}/messages"
+    )
+    headers = {
+        "api_access_token": settings.chatwoot_api_token,
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "content": content,
+        "message_type": "outgoing",
+        "private": False,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            if resp.status_code < 400:
+                logger.debug(f"Chatwoot message sent to conv {conversation_id}")
+                return True
+            else:
+                logger.warning(f"Chatwoot API error {resp.status_code}: {resp.text[:200]}")
+                return False
+    except Exception as exc:
+        logger.warning(f"Chatwoot API unreachable: {exc}")
+        return False
