@@ -106,9 +106,48 @@ async def receive_webhook(
     return {"status": "ok"}
 
 
-async def _resume_if_paused(phone: str) -> None:
-    """Resume a paused journey when the student sends a new message."""
+async def _pause_journey_for(phone: str) -> None:
+    """Pause automated journey when student sends text (avoids template
+    interruption during human/agent conversation)."""
     from app.database import get_supabase
+    from datetime import datetime as dt, timezone as tz
+
+    db = await get_supabase()
+    result = await (
+        db.table("contact_journeys")
+        .select("id, status")
+        .eq("phone", phone)
+        .eq("status", "active")
+        .execute()
+    )
+    if not result.data:
+        return
+
+    journey_id = result.data[0]["id"]
+    await (
+        db.table("contact_journeys")
+        .update({
+            "status": "paused",
+            "updated_at": dt.now(tz.utc).isoformat(),
+        })
+        .eq("id", journey_id)
+        .execute()
+    )
+    # Cancel pending messages so nothing fires during pause
+    await (
+        db.table("journey_messages")
+        .update({"status": "cancelled"})
+        .eq("journey_id", journey_id)
+        .eq("status", "pending")
+        .execute()
+    )
+    logger.info(f"Journey auto-paused for {phone}")
+
+
+async def _resume_if_paused(phone: str) -> None:
+    """Resume journey when student clicks a button (re-engaging with flow)."""
+    from app.database import get_supabase
+    from datetime import datetime as dt, timezone as tz
 
     db = await get_supabase()
     result = await (
@@ -120,17 +159,16 @@ async def _resume_if_paused(phone: str) -> None:
     )
     if result.data:
         journey_id = result.data[0]["id"]
-        from datetime import datetime, timezone
         await (
             db.table("contact_journeys")
             .update({
                 "status": "active",
-                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": dt.now(tz.utc).isoformat(),
             })
             .eq("id", journey_id)
             .execute()
         )
-        logger.info(f"Journey RESUMED for {phone} — student is back")
+        logger.info(f"Journey RESUMED for {phone} — button clicked")
 
 
 async def _forward_to_chatwoot(body: bytes) -> None:
@@ -186,8 +224,13 @@ async def _handle_incoming_message(msg: dict) -> None:
         logger.debug(f"Ignoring message type={msg_type} from {phone}")
         return
 
-    # Resume journey if it was paused (human was talking, now student replied)
-    await _resume_if_paused(phone)
+    # Text message = student is talking → pause journey so templates don't interrupt
+    if msg_type == "text" and text_body:
+        await _pause_journey_for(phone)
+
+    # Button click = student engaging with journey → resume
+    if button_text:
+        await _resume_if_paused(phone)
 
     # Always process through journey engine first (updates state/tags)
     journey_result = None
