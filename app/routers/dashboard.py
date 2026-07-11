@@ -604,13 +604,14 @@ async def get_journey_insights():
     db = await get_supabase()
 
     try:
-        result = await db.table("lead_insights").select("temperatura, ticket").execute()
+        result = await db.table("lead_insights").select("temperatura, ticket, estagio").execute()
         rows = result.data or []
     except Exception:
         rows = []
 
     temperatura = {"quente": 0, "morno": 0, "frio": 0}
     ticket = {"high": 0, "low": 0, "unknown": 0}
+    estagio = {"consciencia": 0, "consideracao": 0, "decisao": 0, "cliente": 0}
 
     for r in rows:
         t = r.get("temperatura")
@@ -621,8 +622,13 @@ async def get_journey_insights():
         if tk in ticket:
             ticket[tk] += 1
 
+        e = r.get("estagio")
+        if e in estagio:
+            estagio[e] += 1
+
     return {
         "temperatura": temperatura,
         "ticket": ticket,
+        "estagio": estagio,
         "total_analyzed": len(rows),
     }
