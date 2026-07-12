@@ -89,6 +89,7 @@ td{padding:10px 14px;font-size:13px;border-bottom:1px solid #f1f5f9}
 
 <!-- ════════════ JOURNEY ════════════ -->
 <div id="tab-journey" class="tab-content">
+<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><a href="/dashboard/templates-view" target="_blank" class="btn btn-g" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:18px">menu_book</span> Manual de Templates</a></div>
 <div class="filters" id="j-filters"></div>
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px" id="j-kpi"></div>
 
@@ -331,9 +332,25 @@ document.getElementById('j-tb').innerHTML=(d.data||[]).map(l=>{
 const tags=(l.tags||[]).slice(0,3).map(t=>`<span class="badge ba" style="margin:1px;font-size:10px">${t}</span>`).join('')||'–';
 const prods=(l.purchased_products||[]).slice(0,2).map(p=>PS[p]||p).join(', ')||'–';
 return`<tr class="lead-row" onclick="tLead('${l.phone}')" title="Clique para ver detalhes"><td><span class="material-symbols-outlined" id="chev-${l.phone}" style="font-size:16px;vertical-align:middle;color:#94a3b8">expand_more</span> <strong>${es(l.full_name||'–')}</strong></td><td style="font-family:monospace;font-size:12px">${l.phone}</td><td>${JB[l.status]||l.status}</td><td>${TB[l.temperatura]||'<span style="color:#94a3b8">–</span>'}</td><td>${TKB[l.ticket]||'<span style="color:#94a3b8">–</span>'}</td><td style="font-size:12px">${prods}</td><td><span class="badge ba">D+${l.day_offset||0}</span></td><td style="font-size:12px">${fd(l.last_response_at)}</td></tr>
-<tr class="ld" id="d-${l.phone}" style="display:none"><td colspan="8"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px"><div><strong style="font-size:12px;color:#64748b">Dores</strong><p style="font-size:13px;margin-top:4px">${(l.dores||[]).join(', ')||'Nenhuma registrada'}</p></div><div><strong style="font-size:12px;color:#64748b">Ambições</strong><p style="font-size:13px;margin-top:4px">${(l.ambicoes||[]).join(', ')||'Nenhuma registrada'}</p></div><div><strong style="font-size:12px;color:#64748b">Perfil</strong><p style="font-size:13px;margin-top:4px">${es(l.perfil||'Não analisado')}</p></div><div><strong style="font-size:12px;color:#64748b">Tags</strong><div style="margin-top:4px">${tags}</div><div style="margin-top:8px"><span class="badge ba">${SL[l.current_state]||l.current_state}</span></div></div></div></td></tr>`}).join('');
+<tr class="ld" id="d-${l.phone}" style="display:none"><td colspan="8"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px"><div><strong style="font-size:12px;color:#64748b">Dores</strong><p style="font-size:13px;margin-top:4px">${(l.dores||[]).join(', ')||'Nenhuma registrada'}</p></div><div><strong style="font-size:12px;color:#64748b">Ambições</strong><p style="font-size:13px;margin-top:4px">${(l.ambicoes||[]).join(', ')||'Nenhuma registrada'}</p></div><div><strong style="font-size:12px;color:#64748b">Perfil</strong><p style="font-size:13px;margin-top:4px">${es(l.perfil||'Não analisado')}</p></div><div><strong style="font-size:12px;color:#64748b">Tags</strong><div style="margin-top:4px">${tags}</div><div style="margin-top:8px"><span class="badge ba">${SL[l.current_state]||l.current_state}</span></div></div></div><div><strong style="font-size:12px;color:#64748b">Disparos recebidos</strong><div id="disp-${l.phone}" style="margin-top:6px;font-size:12px;color:#94a3b8">Carregando...</div></div></td></tr>`}).join('');
 }
-function tLead(p){const r=document.getElementById('d-'+p);if(!r)return;const open=r.style.display==='none';r.style.display=open?'':'none';const c=document.getElementById('chev-'+p);if(c)c.textContent=open?'expand_less':'expand_more'}
+const DSB={sent:'<span class="badge ba">Enviado</span>',pending:'<span class="badge bp">Pendente</span>',failed:'<span class="badge bx">Falhou</span>',cancelled:'<span class="badge bx">Cancelado</span>'};
+const DSRC={journey:'Jornada',recovery:'Recuperação'};
+let dispLoaded={};
+function tLead(p){
+const r=document.getElementById('d-'+p);if(!r)return;
+const open=r.style.display==='none';
+r.style.display=open?'':'none';
+const c=document.getElementById('chev-'+p);if(c)c.textContent=open?'expand_less':'expand_more';
+if(open&&!dispLoaded[p]){dispLoaded[p]=true;loadDispatches(p)}
+}
+async function loadDispatches(p){
+const el=document.getElementById('disp-'+p);if(!el)return;
+const d=await F('/dashboard/journey/lead/'+encodeURIComponent(p));
+const disp=d&&d.dispatches||[];
+if(!disp.length){el.innerHTML='Nenhum disparo registrado.';return}
+el.innerHTML=disp.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:12px"><span><span class="badge" style="background:#f1f5f9;color:#475569;margin-right:6px">${DSRC[m.source]||m.source}</span><span style="font-family:monospace">${m.template_name}</span></span><span>${DSB[m.status]||m.status} <span style="color:#94a3b8;margin-left:4px">${fd(m.sent_at||m.scheduled_for)}</span></span></div>`).join('');
+}
 function jPg(d){const n=jp+d;if(n<1||n>jtp)return;jp=n;jLeads()}
 
 // ═══════════ INIT ═══════════

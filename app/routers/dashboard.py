@@ -43,6 +43,13 @@ async def serve_dashboard(key: str = Query(default=None)):
     return FileResponse(os.path.join(_STATIC_DIR, "index.html"))
 
 
+@public_router.get("/templates-view", include_in_schema=False)
+async def serve_templates_view():
+    """Manual de templates — same public-shell pattern as serve_dashboard;
+    the page's own JS fetches /dashboard/templates with the JWT bearer."""
+    return FileResponse(os.path.join(_STATIC_DIR, "templates.html"))
+
+
 # ── helpers ────────────────────────────────────────────────────────────────
 
 def _apply_base_filters(query, start_date, end_date, platform, product):
@@ -458,7 +465,8 @@ async def get_journey_leads(
 async def get_journey_lead(phone: str):
     """
     Single lead deep view. Merges contact_journeys, lead_insights, contacts,
-    and the 10 most recent journey_messages by phone.
+    and every dispatch (both scheduled_messages from the recovery funnel and
+    journey_messages from the post-purchase journey) sent to this phone.
     """
     db = await get_supabase()
 
@@ -494,19 +502,41 @@ async def get_journey_lead(phone: str):
     except Exception:
         pass
 
-    # --- recent messages ---
+    # --- dispatches: journey_messages (post-purchase, 37 templates) +
+    #     scheduled_messages (recovery funnel, 3 templates) — everything
+    #     ever sent (or scheduled) to this phone, unified into one timeline.
+    dispatches: list[dict] = []
     try:
-        mr = await (
+        jm = await (
             db.table("journey_messages")
-            .select("*")
+            .select("template_name, message_number, status, scheduled_for, sent_at, whatsapp_message_id")
             .eq("phone", phone)
             .order("scheduled_for", desc=True)
-            .limit(10)
+            .limit(50)
             .execute()
         )
-        profile["recent_messages"] = mr.data or []
+        for m in (jm.data or []):
+            dispatches.append({**m, "source": "journey"})
     except Exception:
-        profile["recent_messages"] = []
+        pass
+
+    try:
+        sm = await (
+            db.table("scheduled_messages")
+            .select("template_name, message_number, status, scheduled_for, sent_at, whatsapp_message_id")
+            .eq("phone", phone)
+            .order("scheduled_for", desc=True)
+            .limit(50)
+            .execute()
+        )
+        for m in (sm.data or []):
+            dispatches.append({**m, "source": "recovery"})
+    except Exception:
+        pass
+
+    dispatches.sort(key=lambda m: m.get("scheduled_for") or "", reverse=True)
+    profile["dispatches"] = dispatches
+    profile["recent_messages"] = dispatches[:10]  # kept for backward compatibility
 
     profile["phone"] = phone
     return profile
@@ -632,3 +662,66 @@ async def get_journey_insights():
         "estagio": estagio,
         "total_analyzed": len(rows),
     }
+
+
+@router.get("/templates")
+async def get_templates():
+    """
+    Full catalog of WhatsApp message templates approved on Meta — the
+    actual copy (header/body/footer/buttons), not just the name. Pulled
+    live from the Graph API so it's always in sync with what's actually
+    approved and sendable. Powers the templates manual page.
+    """
+    import httpx
+
+    from app.config import settings
+    from app.services.journey_engine import TEMPLATES as JOURNEY_TEMPLATES
+    from app.services.recovery import PRODUCT_TEMPLATE_MAP
+
+    if not settings.meta_waba_id or not settings.meta_access_token:
+        return {"templates": [], "total": 0}
+
+    # Names the app actually sends today — everything else on Meta is a
+    # leftover draft (older _v1/no-suffix iteration) kept around because
+    # WhatsApp doesn't let you delete an approved template.
+    in_use_names = set(JOURNEY_TEMPLATES.keys())
+    for _keyword, prefix in PRODUCT_TEMPLATE_MAP:
+        in_use_names.update(f"{prefix}{i}_v1" for i in (1, 2, 3))
+
+    url = f"https://graph.facebook.com/{settings.meta_api_version}/{settings.meta_waba_id}/message_templates"
+    params: dict | None = {"fields": "name,status,category,language,components", "limit": 200}
+    headers = {"Authorization": f"Bearer {settings.meta_access_token}"}
+
+    templates = []
+    async with httpx.AsyncClient(timeout=30) as client:
+        while url:
+            resp = await client.get(url, params=params, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+
+            for t in data.get("data", []):
+                components = t.get("components", [])
+                header = next((c for c in components if c.get("type") == "HEADER"), None)
+                body = next((c.get("text", "") for c in components if c.get("type") == "BODY"), "")
+                footer = next((c.get("text") for c in components if c.get("type") == "FOOTER"), None)
+                buttons_comp = next((c for c in components if c.get("type") == "BUTTONS"), None)
+                buttons = [b.get("text", "") for b in (buttons_comp.get("buttons", []) if buttons_comp else [])]
+
+                templates.append({
+                    "name": t.get("name"),
+                    "status": t.get("status"),
+                    "category": t.get("category"),
+                    "language": t.get("language"),
+                    "header_text": header.get("text") if header else None,
+                    "header_format": header.get("format") if header else None,
+                    "body": body,
+                    "footer": footer,
+                    "buttons": buttons,
+                    "in_use": t.get("name") in in_use_names,
+                })
+
+            url = (data.get("paging") or {}).get("next")
+            params = None  # the "next" URL already carries all query params
+
+    templates.sort(key=lambda t: (not t["in_use"], t["name"] or ""))
+    return {"templates": templates, "total": len(templates)}

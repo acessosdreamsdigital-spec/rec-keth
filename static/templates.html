@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Differs — Manual de Templates</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#f1f5f9;color:#0f172a}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle;font-size:20px}
+header{background:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
+h1{font-size:18px;font-weight:800}
+.back{display:flex;align-items:center;gap:6px;color:#0056D2;text-decoration:none;font-weight:700;font-size:14px}
+main{max-width:1200px;margin:0 auto;padding:24px}
+.filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+input,select{padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:inherit;background:#fff}
+.count{font-size:13px;color:#94a3b8;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.tpl-card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.tpl-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px}
+.tpl-name{font-family:monospace;font-size:11px;color:#64748b;margin-bottom:8px;word-break:break-all}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase;white-space:nowrap}
+.b-approved{background:#dcfce7;color:#16a34a}.b-pending{background:#fef3c7;color:#d97706}.b-rejected{background:#fee2e2;color:#dc2626}
+.b-marketing{background:#ede9fe;color:#7c3aed}.b-utility{background:#e0f2fe;color:#0369a1}
+.b-inuse{background:#dbeafe;color:#0056D2}.b-old{background:#f1f5f9;color:#94a3b8}
+.tpl-card.old{opacity:.6}
+.wa-wrap{background:#e5ded5;border-radius:12px;padding:12px}
+.wa-bubble{background:#d9fdd3;border-radius:0 10px 10px 10px;padding:8px 10px;font-size:13.5px;line-height:1.4;white-space:pre-wrap;word-break:break-word}
+.wa-header{font-weight:700;margin-bottom:4px}
+.wa-footer{font-size:11px;color:#667781;margin-top:6px}
+.wa-time{font-size:10px;color:#667781;text-align:right;margin-top:2px}
+.wa-btn{background:#fff;padding:9px;text-align:center;font-size:13px;color:#00a5f4;font-weight:600;margin-top:1px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px}
+.empty{text-align:center;padding:60px;color:#94a3b8}
+</style>
+</head>
+<body>
+<header>
+<a href="/dashboard/" class="back"><span class="material-symbols-outlined">arrow_back</span> Dashboard</a>
+<h1>📋 Manual de Templates</h1>
+<span style="width:110px"></span>
+</header>
+<main>
+<div class="filters">
+<input type="text" id="q" placeholder="🔍 Buscar por nome ou texto..." style="min-width:260px;flex:1">
+<select id="cat"><option value="">Categoria</option><option value="MARKETING">Marketing</option><option value="UTILITY">Utility</option></select>
+<select id="st"><option value="">Status</option><option value="APPROVED">Aprovado</option><option value="PENDING">Pendente</option><option value="REJECTED">Rejeitado</option></select>
+<select id="use"><option value="inuse">Em uso hoje</option><option value="old">Rascunhos antigos</option><option value="all">Todos</option></select>
+</div>
+<div class="count" id="count"></div>
+<div class="grid" id="grid"></div>
+</main>
+<script>
+let ALL=[];
+function T(){return localStorage.getItem('ddi_token')||''}
+async function F(url){const t=T();if(!t){window.location.href='/login';return null}try{const r=await fetch(url,{headers:{Authorization:'Bearer '+t}});if(r.status===401){localStorage.removeItem('ddi_token');window.location.href='/login';return null}if(!r.ok)return null;return await r.json()}catch(e){return null}}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function fillVars(s){return esc(s).replace(/\{\{1\}\}/g,'Quézia').replace(/\{\{(\d+)\}\}/g,'valor$1')}
+function statusBadge(s){const m={APPROVED:'b-approved',PENDING:'b-pending',REJECTED:'b-rejected'};return `<span class="badge ${m[s]||''}">${s||'?'}</span>`}
+function catBadge(c){const m={MARKETING:'b-marketing',UTILITY:'b-utility'};return `<span class="badge ${m[c]||''}">${c||'?'}</span>`}
+
+function render(){
+const q=(document.getElementById('q').value||'').toLowerCase();
+const cat=document.getElementById('cat').value;
+const st=document.getElementById('st').value;
+const use=document.getElementById('use').value;
+const filtered=ALL.filter(t=>{
+if(cat&&t.category!==cat)return false;
+if(st&&t.status!==st)return false;
+if(use==='inuse'&&!t.in_use)return false;
+if(use==='old'&&t.in_use)return false;
+if(q&&!((t.name||'').toLowerCase().includes(q)||(t.body||'').toLowerCase().includes(q)))return false;
+return true;
+});
+const inUseTotal=ALL.filter(t=>t.in_use).length;
+document.getElementById('count').textContent=`${filtered.length} de ${ALL.length} templates (${inUseTotal} em uso hoje, ${ALL.length-inUseTotal} rascunhos antigos de versões anteriores)`;
+document.getElementById('grid').innerHTML=filtered.length?filtered.map(t=>`
+<div class="tpl-card ${t.in_use?'':'old'}">
+<div class="tpl-top">${t.in_use?'<span class="badge b-inuse">Em uso hoje</span>':'<span class="badge b-old">Rascunho antigo</span>'} ${statusBadge(t.status)} ${catBadge(t.category)}</div>
+<div class="tpl-name">${esc(t.name)}</div>
+<div class="wa-wrap"><div class="wa-bubble">
+${t.header_text?`<div class="wa-header">${fillVars(t.header_text)}</div>`:''}
+${fillVars(t.body)}
+${t.footer?`<div class="wa-footer">${esc(t.footer)}</div>`:''}
+<div class="wa-time">✓✓ 12:00</div>
+</div>
+${(t.buttons||[]).length?t.buttons.map(b=>`<div class="wa-btn"><span class="material-symbols-outlined" style="font-size:15px">reply</span>${esc(b)}</div>`).join(''):''}
+</div>
+</div>
+`).join(''):'<div class="empty">Nenhum template encontrado.</div>';
+}
+
+async function load(){
+const r=await F('/dashboard/templates');
+if(!r)return;
+ALL=r.templates||[];
+render();
+}
+
+document.getElementById('q').addEventListener('input',render);
+document.getElementById('cat').addEventListener('change',render);
+document.getElementById('st').addEventListener('change',render);
+document.getElementById('use').addEventListener('change',render);
+document.addEventListener('DOMContentLoaded',load);
+</script>
+</body>
+</html>
