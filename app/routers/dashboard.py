@@ -18,8 +18,9 @@ Endpoints:
 
 import os
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Query
 from fastapi.responses import FileResponse
@@ -27,6 +28,38 @@ from fastapi.responses import FileResponse
 from app.database import get_supabase
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+# All timestamps are stored in UTC (app writes datetime.now(timezone.utc)
+# everywhere). The business — and everyone reading this dashboard — is in
+# São Paulo, so "today" and every date-range filter/bucket must be computed
+# in that timezone, not the server's (UTC on Railway). Getting this wrong
+# means the last ~3h of each São Paulo day silently vanish from filters,
+# and "hoje" shows empty for the last ~3h of every day.
+SP_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def _today_sp() -> date:
+    return datetime.now(SP_TZ).date()
+
+
+def _sp_day_start_utc_iso(d: date) -> str:
+    """UTC instant corresponding to 00:00 on `d` in São Paulo time."""
+    return datetime(d.year, d.month, d.day, tzinfo=SP_TZ).astimezone(timezone.utc).isoformat()
+
+
+def _sp_day_end_utc_iso(d: date) -> str:
+    """UTC instant corresponding to the start of the NEXT São Paulo day
+    (exclusive upper bound) — i.e. 00:00 on d+1 in São Paulo time."""
+    next_day = datetime(d.year, d.month, d.day, tzinfo=SP_TZ) + timedelta(days=1)
+    return next_day.astimezone(timezone.utc).isoformat()
+
+
+def _sp_day_str(iso_str: str) -> str:
+    """Convert a stored UTC timestamp to its São Paulo calendar day (YYYY-MM-DD)."""
+    if not iso_str:
+        return ""
+    dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+    return dt.astimezone(SP_TZ).date().isoformat()
 
 # Serves the static shell (index.html) — kept on a separate, unauthenticated
 # router because the browser's page navigation never carries the JWT bearer
@@ -54,9 +87,9 @@ async def serve_templates_view():
 
 def _apply_base_filters(query, start_date, end_date, platform, product):
     if start_date:
-        query = query.gte("created_at", start_date.isoformat())
+        query = query.gte("created_at", _sp_day_start_utc_iso(start_date))
     if end_date:
-        query = query.lte("created_at", f"{end_date.isoformat()}T23:59:59")
+        query = query.lt("created_at", _sp_day_end_utc_iso(end_date))
     if platform:
         query = query.eq("platform", platform)
     if product:
@@ -66,7 +99,7 @@ def _apply_base_filters(query, start_date, end_date, platform, product):
 
 def _default_start() -> date:
     # Default window is the current day (dashboard opens on "today").
-    return date.today()
+    return _today_sp()
 
 
 async def _fetch_all(table, columns, sd, ed, platform, product, extra=None):
@@ -103,7 +136,7 @@ async def get_stats(
 ):
     """Top-level KPI cards."""
     sd = start_date or _default_start()
-    ed = end_date or date.today()
+    ed = end_date or _today_sp()
 
     sessions = await _fetch_all(
         "recovery_sessions", "status, messages_sent, amount_cents", sd, ed, platform, product
@@ -154,7 +187,7 @@ async def get_sessions(
     db = await get_supabase()
 
     sd = start_date or _default_start()
-    ed = end_date or date.today()
+    ed = end_date or _today_sp()
 
     offset = (page - 1) * limit
 
@@ -187,7 +220,7 @@ async def get_funnel(
 ):
     """Conversions by message number — shows which message converts most."""
     sd = start_date or _default_start()
-    ed = end_date or date.today()
+    ed = end_date or _today_sp()
 
     rows = await _fetch_all(
         "recovery_sessions", "messages_sent", sd, ed, platform, product,
@@ -211,7 +244,7 @@ async def get_product_stats(
 ):
     """Aggregated performance per product."""
     sd = start_date or _default_start()
-    ed = end_date or date.today()
+    ed = end_date or _today_sp()
 
     rows = await _fetch_all(
         "recovery_sessions", "template_prefix, product_name, status, amount_cents",
@@ -259,7 +292,7 @@ async def get_daily(
 ):
     """Sessions and conversions per day for the timeline chart."""
     sd = start_date or _default_start()
-    ed = end_date or date.today()
+    ed = end_date or _today_sp()
 
     rows = await _fetch_all(
         "recovery_sessions", "created_at, status, amount_cents, messages_sent",
@@ -268,7 +301,7 @@ async def get_daily(
 
     daily: dict = defaultdict(lambda: {"sessions": 0, "converted": 0, "recovered_cents": 0, "messages_sent": 0})
     for s in rows:
-        day = (s.get("created_at") or "")[:10]
+        day = _sp_day_str(s.get("created_at") or "")
         if not day:
             continue
         daily[day]["sessions"] += 1
@@ -288,9 +321,9 @@ async def get_daily(
 def _apply_journey_filters(query, start_date, end_date, entry_platform, entry_product):
     """Apply date/product/platform filters to a contact_journeys query."""
     if start_date:
-        query = query.gte("created_at", start_date.isoformat())
+        query = query.gte("created_at", _sp_day_start_utc_iso(start_date))
     if end_date:
-        query = query.lte("created_at", f"{end_date.isoformat()}T23:59:59")
+        query = query.lt("created_at", _sp_day_end_utc_iso(end_date))
     if entry_platform:
         query = query.eq("entry_platform", entry_platform)
     if entry_product:
@@ -332,7 +365,7 @@ async def get_journey_stats(
 ):
     """Journey KPI cards — status distribution and aggregate metrics."""
     sd = start_date or _default_start()
-    ed = end_date or date.today()
+    ed = end_date or _today_sp()
 
     try:
         rows = await _fetch_all_journeys(
@@ -384,7 +417,7 @@ async def get_journey_leads(
     db = await get_supabase()
 
     sd = start_date or _default_start()
-    ed = end_date or date.today()
+    ed = end_date or _today_sp()
     offset = (page - 1) * limit
 
     # --- 1. Fetch paginated contact_journeys ---
@@ -630,7 +663,7 @@ async def get_journey_daily(
 ):
     """Journeys created + messages sent per day for the timeline chart."""
     sd = start_date or _default_start()
-    ed = end_date or date.today()
+    ed = end_date or _today_sp()
 
     try:
         rows = await _fetch_all_journeys(
@@ -641,7 +674,7 @@ async def get_journey_daily(
 
     daily: dict = defaultdict(lambda: {"journeys_created": 0, "messages_sent": 0})
     for r in rows:
-        day = (r.get("created_at") or "")[:10]
+        day = _sp_day_str(r.get("created_at") or "")
         if not day:
             continue
         daily[day]["journeys_created"] += 1
@@ -664,7 +697,7 @@ async def get_journey_products(
     aggregates distinct products across purchased_products arrays.
     """
     sd = start_date or _default_start()
-    ed = end_date or date.today()
+    ed = end_date or _today_sp()
 
     try:
         rows = await _fetch_all_journeys(

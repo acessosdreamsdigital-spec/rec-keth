@@ -159,12 +159,12 @@ function T(){return localStorage.getItem('ddi_token')||''}
 function logout(){localStorage.removeItem('ddi_token');window.location.href='/login'}
 async function F(url){try{const t=T();if(!t){window.location.href='/login';return null}const r=await fetch(url,{headers:{Authorization:'Bearer '+t}});if(r.status===401){logout();return null}if(!r.ok)return null;return await r.json()}catch(e){return null}}
 function fc(c){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((c||0)/100)}
-function fd(i){if(!i)return'–';return new Date(i).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}
+function fd(i){if(!i)return'–';return new Date(i).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}
 function fdy(d){if(!d)return'';const[,m,dd]=d.split('-');return`${dd}/${m}`}
 function es(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function ini(n){return String(n).split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?'}
 function lc(mx){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11},boxWidth:10,padding:16}}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#94a3b8',font:{size:11}},border:{display:false}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#94a3b8',font:{size:11}},border:{display:false},max:mx}}}}
-function today(){return new Date().toISOString().split('T')[0]}
+function today(){return new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'})}
 
 function kpiCard(v,l,sub,sc,icon,tip){return`<div class="glass" style="padding:20px;position:relative;overflow:hidden"><div style="position:absolute;top:0;right:0;padding:16px;color:#f1f5f9;pointer-events:none"><span class="material-symbols-outlined" style="font-size:56px">${icon}</span></div><div class="kpi-l">${l} <span class="tip" data-tip="${tip}">?</span></div><div class="kpi-v" style="position:relative;z-index:1">${v}</div><div class="sub" style="color:${sc};position:relative;z-index:1">${sub}</div></div>`}
 
@@ -404,7 +404,7 @@ function ctPg(d){const n=cp+d;if(n<1||n>ctp)return;cp=n;loadContacts()}
 document.addEventListener('DOMContentLoaded',async()=>{
 if(!T()){window.location.href='/login';return}
 loadRec();
-setInterval(()=>{document.getElementById('updated').textContent='Atualizado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})},30000);
+setInterval(()=>{document.getElementById('updated').textContent='Atualizado às '+new Date().toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'})},30000);
 });
 </script>
 </body>
