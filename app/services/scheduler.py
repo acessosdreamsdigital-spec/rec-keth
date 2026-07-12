@@ -315,6 +315,17 @@ async def run_scheduler(interval_seconds: int = 30) -> None:
             await _process_due_messages()          # recovery messages (existing)
             await _process_due_journey_messages()   # journey messages (new)
             await _check_journey_silence()          # auto-transition to fria
+
+            # Safety net: recover any buffered WhatsApp fragment whose
+            # debounce task died mid-wait (typically a deploy restarting the
+            # container) so it doesn't just sit silently until TTL expiry
+            # with no reply ever sent.
+            from app.routers.meta import _call_agent_and_reply
+            from app.services.message_buffer import recover_stale_buffers
+
+            recovered = await recover_stale_buffers(_call_agent_and_reply)
+            if recovered:
+                logger.warning(f"Scheduler: recovered {recovered} stale message buffer(s)")
         except Exception as exc:
             logger.error(f"Scheduler loop error: {exc}")
         await asyncio.sleep(interval_seconds)
