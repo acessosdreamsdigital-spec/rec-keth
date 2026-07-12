@@ -30,22 +30,23 @@ async def find_conversation(phone: str) -> tuple[str, str] | None:
     base = settings.chatwoot_api_url.rstrip("/")
     headers = {"api_access_token": settings.chatwoot_api_token, "Content-Type": "application/json"}
 
+    # /contacts/filter with attribute_key=phone_number + equal_to reliably
+    # returns zero results even for an exact match (confirmed against
+    # production) — Chatwoot's phone_number filter comparison doesn't match
+    # the "+55..." string the way a plain search does. /contacts/search
+    # does match correctly, so we use digits-only (matches Chatwoot's own
+    # WhatsApp Cloud contact_inboxes.source_id format, e.g. "5522998030398").
+    digits = "".join(c for c in phone if c.isdigit())
+
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(
-                f"{base}/api/v1/accounts/{account_id}/contacts/filter",
+            resp = await client.get(
+                f"{base}/api/v1/accounts/{account_id}/contacts/search",
                 headers=headers,
-                json={
-                    "payload": [{
-                        "attribute_key": "phone_number",
-                        "filter_operator": "equal_to",
-                        "values": [phone],
-                        "query_operator": None,
-                    }]
-                },
+                params={"q": digits},
             )
             if resp.status_code >= 400:
-                logger.warning(f"Chatwoot contact filter error {resp.status_code}: {resp.text[:200]}")
+                logger.warning(f"Chatwoot contact search error {resp.status_code}: {resp.text[:200]}")
                 return None
             contacts = resp.json().get("payload", [])
             if not contacts:

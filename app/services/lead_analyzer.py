@@ -120,7 +120,14 @@ async def _collect_lead_data(phone: str) -> dict | None:
                 r = await c.get(f"{_settings.supabase_url}/rest/v1/{path}", headers=headers)
                 if r.status_code == 200 and r.text:
                     result = r.json()
-                    data[label] = result[0] if isinstance(result, list) and result else result
+                    if isinstance(result, list):
+                        # PostgREST always returns a list for a select — an
+                        # empty list means "no row", which must normalize to
+                        # {} (not []), since every caller treats this as a
+                        # single-record dict (e.g. context["insight"].get(...)).
+                        data[label] = result[0] if result else {}
+                    else:
+                        data[label] = result
         except Exception as exc:
             logger.debug(f"Error fetching {label}: {exc}")
             data[label] = {}
