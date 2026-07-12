@@ -277,9 +277,15 @@ kpiCard(ht,'Potencial High Ticket',lw+' potencial low','#7c3aed','diamond','Lead
 async function loadJKanban(q){
 const rows=await F('/dashboard/journey/leads?'+q+'&limit=1000');
 const all=rows?rows.data||[]:[];
-const sts={ativacao:0,engajada:0,fria:0,paused:0,completed:0,opted_out:0};
+const sts={ativacao:0,engajada:0,fria:0,completed:0,opted_out:0};
 let acl=0;
 all.forEach(l=>{
+// status='completed' is set on the journey's *status* field when the
+// sequence naturally ends (journey_engine.py::schedule_next) — it does
+// NOT also update current_state, which stays at whatever state the
+// journey was last in (e.g. 'fria'). Check status first so finished
+// journeys land in "Completa" instead of inflating their last state.
+if(l.status==='completed'){sts.completed++;return}
 const s=l.current_state||'';
 if(sts.hasOwnProperty(s))sts[s]++;
 else if(s.startsWith('acel_'))acl++;
@@ -314,7 +320,10 @@ async function loadJFunnel(q){
 const rows=await F('/dashboard/journey/leads?'+q+'&limit=1000');
 const all=rows?rows.data||[]:[];
 const f={ativacao:0,engajada:0,acelerada:0,fria:0,completed:0};
-all.forEach(l=>{const s=l.current_state||'';if(f.hasOwnProperty(s))f[s]++;else if(s.startsWith('acel_')||s.includes('followup'))f.acelerada++;});
+all.forEach(l=>{
+if(l.status==='completed'){f.completed++;return} // status!=current_state — see loadJKanban
+const s=l.current_state||'';if(f.hasOwnProperty(s))f[s]++;else if(s.startsWith('acel_')||s.includes('followup'))f.acelerada++;
+});
 if(charts.jfun)charts.jfun.destroy();
 charts.jfun=new Chart(document.getElementById('chJfun').getContext('2d'),{type:'bar',data:{labels:['Ativação','Engajada','Acelerada','Fria','Completa'],datasets:[{data:[f.ativacao,f.engajada,f.acelerada,f.fria,f.completed],backgroundColor:['#3b82f6','#10b981','#f59e0b','#94a3b8','#6366f1'],borderRadius:8}]},options:{...lc(),plugins:{...lc().plugins,legend:{display:false}}}});
 }
