@@ -10,6 +10,7 @@ Tools:
 
 from __future__ import annotations
 
+import contextvars
 from urllib.parse import quote
 
 from langchain_core.tools import tool
@@ -18,6 +19,16 @@ import httpx
 from app.agent.prompt import CHECKOUT_LINKS, FORMULARIO_DDI, PRODUCT_FAQ, SUPORTE_ALUNOS
 from app.config import settings as _settings
 from app.utils.phone import normalize_phone
+
+# The real phone number for the conversation currently being handled. The
+# LLM has no reliable way to know this on its own — the message text it
+# sees never includes the sender's number — so when a tool asks for
+# `whatsapp`, the model sometimes guesses (has been observed passing the
+# message text itself, or the literal word "user"). Set once per request
+# in app/agent/engine.py::julia_reply() and read here instead of trusting
+# whatever the model supplies, so verificar_cliente/classificar_lead can
+# never look up the wrong contact.
+CURRENT_PHONE: contextvars.ContextVar[str] = contextvars.ContextVar("current_phone", default="")
 
 
 def _supa_url() -> str:
@@ -155,10 +166,12 @@ def verificar_cliente(whatsapp: str) -> str:
     Args:
         whatsapp: Numero do WhatsApp do lead (ex: 5521984103779)
     """
-    # Normalize phone to the DB's canonical +55XXXXXXXXXXX format, then
+    # Use the real phone bound to this conversation, not whatever the model
+    # passed as `whatsapp` (unreliable — see CURRENT_PHONE docstring above).
+    # Normalize to the DB's canonical +55XXXXXXXXXXX format, then
     # percent-encode for the URL — a raw "+" in a query string is read as
     # a space by PostgREST, so eq.+5511... would never match anything.
-    phone = normalize_phone(whatsapp)
+    phone = normalize_phone(CURRENT_PHONE.get() or whatsapp)
     phone_q = quote(phone, safe="")
 
     # 1. Check contacts
@@ -256,7 +269,7 @@ def classificar_lead(whatsapp: str, temperatura: str = "", ticket: str = "", est
         ticket: "high" ou "low" (deixe vazio se nao mudou)
         estagio: "consciencia", "consideracao", "decisao", ou "cliente" (deixe vazio se nao mudou)
     """
-    phone = normalize_phone(whatsapp)
+    phone = normalize_phone(CURRENT_PHONE.get() or whatsapp)
     phone_q = quote(phone, safe="")
 
     updates = {}

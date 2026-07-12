@@ -121,6 +121,14 @@ async def julia_reply(phone: str, message: str, full_name: str = "") -> dict:
     if full_name:
         agent_input = f"[Lead: {full_name}] {message}"
 
+    # verificar_cliente/classificar_lead take a `whatsapp` argument, but the
+    # model has no reliable way to know the real number (it only sees the
+    # message text) — observed passing the message itself or the literal
+    # word "user". Bind the real phone via contextvar so those tools use it
+    # regardless of what the model supplies. See app/agent/tools.py::CURRENT_PHONE.
+    from app.agent.tools import CURRENT_PHONE
+
+    phone_token = CURRENT_PHONE.set(phone)
     try:
         result = await agent.ainvoke(
             {"input": agent_input, "chat_history": memory.messages},
@@ -133,6 +141,8 @@ async def julia_reply(phone: str, message: str, full_name: str = "") -> dict:
             "link_type": None,
             "link_url": None,
         }
+    finally:
+        CURRENT_PHONE.reset(phone_token)
 
     reply = result.get("output", "")
 
