@@ -461,6 +461,85 @@ async def get_journey_leads(
     }
 
 
+@router.get("/contacts")
+async def get_contacts_without_journey(
+    search: Optional[str] = Query(default=None),
+    temperatura: Optional[str] = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, le=100),
+):
+    """
+    Contacts who have talked to Júlia but never completed a purchase — no
+    contact_journeys row (that only gets created on a confirmed sale, see
+    app/services/journey_engine.py::create_journey). Without this endpoint
+    these contacts are recorded (app/routers/meta.py upserts one on every
+    inbound message) but invisible anywhere in the dashboard.
+    """
+    db = await get_supabase()
+    offset = (page - 1) * limit
+
+    # Everyone who *does* have a journey — excluded below via NOT IN. Small
+    # table (one row per confirmed sale), cheap to pull in full.
+    try:
+        journeys = await db.table("contact_journeys").select("phone").execute()
+        journey_phones = [j["phone"] for j in (journeys.data or []) if j.get("phone")]
+    except Exception:
+        journey_phones = []
+
+    try:
+        query = db.table("contacts").select("*", count="exact")
+        if journey_phones:
+            query = query.not_.in_("phone", journey_phones)
+        if search:
+            query = query.or_(f"full_name.ilike.*{search}*,phone.ilike.*{search}*")
+        query = query.order("updated_at", desc=True).range(offset, offset + limit - 1)
+        result = await query.execute()
+    except Exception:
+        return {"data": [], "total": 0, "page": page, "pages": 0}
+
+    total = result.count or 0
+    rows = result.data or []
+
+    # Enrich with lead_insights (temperatura/ticket/estagio/dores/...) —
+    # these ARE generated for non-buyers too (analyze_lead only requires a
+    # contact or journey to exist, see app/services/lead_analyzer.py).
+    phones = [r["phone"] for r in rows if r.get("phone")]
+    insights_by_phone: dict[str, dict] = {}
+    if phones:
+        try:
+            ins_result = await db.table("lead_insights").select("*").in_("phone", phones).execute()
+            for i in (ins_result.data or []):
+                insights_by_phone[i["phone"]] = i
+        except Exception:
+            insights_by_phone = {}
+
+    data = []
+    for r in rows:
+        ins = insights_by_phone.get(r.get("phone"), {})
+        if temperatura and ins.get("temperatura") != temperatura:
+            continue
+        data.append({
+            "phone": r.get("phone"),
+            "full_name": r.get("full_name"),
+            "email": r.get("email"),
+            "created_at": r.get("created_at"),
+            "updated_at": r.get("updated_at"),
+            "temperatura": ins.get("temperatura"),
+            "ticket": ins.get("ticket"),
+            "estagio": ins.get("estagio"),
+            "dores": ins.get("dores"),
+            "ambicoes": ins.get("ambicoes"),
+            "perfil": ins.get("perfil"),
+        })
+
+    return {
+        "data": data,
+        "total": total,
+        "page": page,
+        "pages": max(1, -(-total // limit)),
+    }
+
+
 @router.get("/journey/lead/{phone}")
 async def get_journey_lead(phone: str):
     """

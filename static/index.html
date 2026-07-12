@@ -62,6 +62,7 @@ td{padding:10px 14px;font-size:13px;border-bottom:1px solid #f1f5f9}
 <div class="tab-nav">
 <button class="tab-btn active" onclick="switchTab('rec')">📊 Recuperação</button>
 <button class="tab-btn" onclick="switchTab('journey')">🛤️ Jornada</button>
+<button class="tab-btn" onclick="switchTab('contacts')">💬 Contatos</button>
 </div>
 
 <!-- ════════════ RECOVERY ════════════ -->
@@ -119,6 +120,20 @@ td{padding:10px 14px;font-size:13px;border-bottom:1px solid #f1f5f9}
 <div style="display:flex;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9"><span id="j-pag" style="font-size:12px;color:#94a3b8"></span><div style="display:flex;gap:8px"><button class="btn btn-g" id="j-prev" onclick="jPg(-1)">←</button><button class="btn btn-g" id="j-next" onclick="jPg(1)">→</button></div></div>
 </div>
 </div>
+
+<!-- ════════════ CONTATOS (sem jornada / nunca compraram) ════════════ -->
+<div id="tab-contacts" class="tab-content">
+<div class="glass" style="overflow:hidden;margin-bottom:24px">
+<div style="padding:12px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+<h5>Contatos <span class="tip" data-tip="Quem já falou com a Júlia mas ainda não comprou nada — sem jornada iniciada. Diferente da aba Jornada, que só mostra quem já converteu. Clique numa linha pra ver a análise de IA (temperatura, dores, ambições, perfil).">?</span></h5>
+<span id="contacts-count" style="font-size:12px;color:#94a3b8"></span>
+<input type="text" id="ct-search" placeholder="🔍 Nome ou WhatsApp..." oninput="ctSearch=this.value;cp=1;loadContacts()" style="margin-left:auto">
+<select id="ct-temp" onchange="ctTemp=this.value;cp=1;loadContacts()"><option value="">Temperatura</option><option value="quente">Quente</option><option value="morno">Morno</option><option value="frio">Frio</option></select>
+</div>
+<div style="overflow-x:auto"><table><thead><tr><th>Nome</th><th>WhatsApp</th><th>Email</th><th>Temp</th><th>Estágio</th><th>Primeira msg</th><th>Última msg</th></tr></thead><tbody id="ct-tb"></tbody></table></div>
+<div style="display:flex;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9"><span id="ct-pag" style="font-size:12px;color:#94a3b8"></span><div style="display:flex;gap:8px"><button class="btn btn-g" id="ct-prev" onclick="ctPg(-1)">←</button><button class="btn btn-g" id="ct-next" onclick="ctPg(1)">→</button></div></div>
+</div>
+</div>
 </main>
 
 <div class="tip-overlay" id="tip-overlay" onclick="if(event.target===this)closeTip()">
@@ -134,7 +149,7 @@ const SB={active:'<span class="badge ba">Ativa</span>',converted:'<span class="b
 const JB={active:'<span class="badge ba">Ativa</span>',paused:'<span class="badge bp">Pausada</span>',completed:'<span class="badge bco">Completa</span>',opted_out:'<span class="badge bo">Opt-out</span>',suporte:'<span class="badge bx">Suporte</span>'};
 const TB={quente:'<span class="badge tq">Quente</span>',morno:'<span class="badge tm">Morno</span>',frio:'<span class="badge tf">Frio</span>'};
 const TKB={high:'<span class="badge th">High</span>',low:'<span class="badge tl">Low</span>'};
-let charts={},ct='rec',jl=false,rp=1,rtp=1,jp=1,jtp=1;
+let charts={},ct='rec',jl=false,rp=1,rtp=1,jp=1,jtp=1,ctl=false,cp=1,ctp=1,ctSearch='',ctTemp='';
 
 function showTip(t){document.getElementById('tip-text').textContent=t;document.getElementById('tip-overlay').classList.add('open')}
 function closeTip(){document.getElementById('tip-overlay').classList.remove('open')}
@@ -153,7 +168,7 @@ function today(){return new Date().toISOString().split('T')[0]}
 
 function kpiCard(v,l,sub,sc,icon,tip){return`<div class="glass" style="padding:20px;position:relative;overflow:hidden"><div style="position:absolute;top:0;right:0;padding:16px;color:#f1f5f9;pointer-events:none"><span class="material-symbols-outlined" style="font-size:56px">${icon}</span></div><div class="kpi-l">${l} <span class="tip" data-tip="${tip}">?</span></div><div class="kpi-v" style="position:relative;z-index:1">${v}</div><div class="sub" style="color:${sc};position:relative;z-index:1">${sub}</div></div>`}
 
-function switchTab(tab){ct=tab;document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(tab==='rec'&&i===0)||(tab==='journey'&&i===1)));document.getElementById('tab-rec').classList.toggle('active',tab==='rec');document.getElementById('tab-journey').classList.toggle('active',tab==='journey');if(tab==='journey'&&!jl){jl=true;loadJourney()}}
+function switchTab(tab){ct=tab;document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(tab==='rec'&&i===0)||(tab==='journey'&&i===1)||(tab==='contacts'&&i===2)));document.getElementById('tab-rec').classList.toggle('active',tab==='rec');document.getElementById('tab-journey').classList.toggle('active',tab==='journey');document.getElementById('tab-contacts').classList.toggle('active',tab==='contacts');if(tab==='journey'&&!jl){jl=true;loadJourney()}if(tab==='contacts'&&!ctl){ctl=true;loadContacts()}}
 
 // ═══════════ RECOVERY ═══════════
 let recStart=today(),recEnd=today(),recPlat='',recProd='',recSt='',recEm='';
@@ -355,6 +370,26 @@ if(!disp.length){el.innerHTML='Nenhum disparo registrado.';return}
 el.innerHTML=disp.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:12px"><span><span class="badge" style="background:#f1f5f9;color:#475569;margin-right:6px">${DSRC[m.source]||m.source}</span><span style="font-family:monospace">${m.template_name}</span></span><span>${DSB[m.status]||m.status} <span style="color:#94a3b8;margin-left:4px">${fd(m.sent_at||m.scheduled_for)}</span></span></div>`).join('');
 }
 function jPg(d){const n=jp+d;if(n<1||n>jtp)return;jp=n;jLeads()}
+
+// ═══════════ CONTATOS (sem jornada) ═══════════
+async function loadContacts(){
+const p={page:cp,limit:20};
+if(ctSearch)p.search=ctSearch;
+if(ctTemp)p.temperatura=ctTemp;
+const qs=new URLSearchParams(p).toString();
+const d=await F('/dashboard/contacts?'+qs);
+if(!d)return;
+ctp=d.pages;
+document.getElementById('contacts-count').textContent=`${d.total} contatos sem compra`;
+document.getElementById('ct-pag').textContent=`Página ${d.page} de ${d.pages}`;
+document.getElementById('ct-prev').disabled=d.page<=1;
+document.getElementById('ct-next').disabled=d.page>=d.pages;
+document.getElementById('ct-tb').innerHTML=(d.data||[]).map(c=>{
+return`<tr class="lead-row" onclick="tContact('${c.phone}')" title="Clique para ver detalhes"><td><span class="material-symbols-outlined" id="cchev-${c.phone}" style="font-size:16px;vertical-align:middle;color:#94a3b8">expand_more</span> <strong>${es(c.full_name||'–')}</strong></td><td style="font-family:monospace;font-size:12px">${c.phone}</td><td style="font-size:12px">${es(c.email||'–')}</td><td>${TB[c.temperatura]||'<span style="color:#94a3b8">–</span>'}</td><td>${c.estagio?`<span class="badge ba">${c.estagio}</span>`:'<span style="color:#94a3b8">–</span>'}</td><td style="font-size:12px">${fd(c.created_at)}</td><td style="font-size:12px">${fd(c.updated_at)}</td></tr>
+<tr class="ld" id="cd-${c.phone}" style="display:none"><td colspan="7"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px"><div><strong style="font-size:12px;color:#64748b">Dores</strong><p style="font-size:13px;margin-top:4px">${(c.dores||[]).join(', ')||'Nenhuma registrada'}</p></div><div><strong style="font-size:12px;color:#64748b">Ambições</strong><p style="font-size:13px;margin-top:4px">${(c.ambicoes||[]).join(', ')||'Nenhuma registrada'}</p></div><div><strong style="font-size:12px;color:#64748b">Perfil</strong><p style="font-size:13px;margin-top:4px">${es(c.perfil||'Não analisado ainda')}</p></div></div></td></tr>`}).join('');
+}
+function tContact(p){const r=document.getElementById('cd-'+p);if(!r)return;const open=r.style.display==='none';r.style.display=open?'':'none';const c=document.getElementById('cchev-'+p);if(c)c.textContent=open?'expand_less':'expand_more'}
+function ctPg(d){const n=cp+d;if(n<1||n>ctp)return;cp=n;loadContacts()}
 
 // ═══════════ INIT ═══════════
 document.addEventListener('DOMContentLoaded',async()=>{
