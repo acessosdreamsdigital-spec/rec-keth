@@ -1,6 +1,6 @@
 """Admin endpoints — debug, manual triggers, lead analysis."""
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
 from app.services.lead_analyzer import analyze_lead
 from app.utils.phone import normalize_phone

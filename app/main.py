@@ -90,8 +90,6 @@ async def rate_limit_middleware(request: Request, call_next):
         limit, window = int(settings.rate_limit_webhooks.split("/")[0]), 60
     elif path.startswith("/admin/") or path.startswith("/dashboard/") or path == "/cost":
         limit, window = int(settings.rate_limit_admin.split("/")[0]), 60
-    elif path.startswith("/agent/") or path.startswith("/journey/"):
-        limit, window = int(settings.rate_limit_agent.split("/")[0]), 60
     else:
         limit, window = 60, 60
 

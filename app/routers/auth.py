@@ -4,7 +4,7 @@ import os
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 
 router = APIRouter(tags=["auth"])
 

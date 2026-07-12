@@ -73,7 +73,6 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     rate_limit_webhooks: str = "120/minute"    # Kiwify/Assiny/Meta/Chatwoot
     rate_limit_admin: str = "30/minute"         # Admin endpoints
-    rate_limit_agent: str = "30/minute"         # Agent endpoints
 
 
 settings = Settings()
