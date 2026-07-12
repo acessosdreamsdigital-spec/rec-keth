@@ -55,7 +55,10 @@ let ALL=[];
 function T(){return localStorage.getItem('ddi_token')||''}
 async function F(url){const t=T();if(!t){window.location.href='/login';return null}try{const r=await fetch(url,{headers:{Authorization:'Bearer '+t}});if(r.status===401){localStorage.removeItem('ddi_token');window.location.href='/login';return null}if(!r.ok)return null;return await r.json()}catch(e){return null}}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function fillVars(s){return esc(s).replace(/\{\{1\}\}/g,'Quézia').replace(/\{\{(\d+)\}\}/g,'valor$1')}
+// {{1}} é preenchido em tempo real com o primeiro nome de cada aluno
+// (contact_journeys.full_name) — "Nome do Aluno" aqui é só placeholder
+// de preview, não um valor fixo enviado de verdade.
+function fillVars(s){return esc(s).replace(/\{\{1\}\}/g,'Nome do Aluno').replace(/\{\{(\d+)\}\}/g,'valor$1')}
 function statusBadge(s){const m={APPROVED:'b-approved',PENDING:'b-pending',REJECTED:'b-rejected'};return `<span class="badge ${m[s]||''}">${s||'?'}</span>`}
 function catBadge(c){const m={MARKETING:'b-marketing',UTILITY:'b-utility'};return `<span class="badge ${m[c]||''}">${c||'?'}</span>`}
 
