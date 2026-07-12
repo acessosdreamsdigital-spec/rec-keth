@@ -334,9 +334,14 @@ def _should_call_agent(journey_result: dict | None, button_text: str | None) -> 
 
 
 async def _call_agent_and_reply(phone: str, message: str) -> None:
-    """Call Júlia agent, split her reply into WhatsApp-sized bubbles, send
-    each via WhatsApp, and mirror each into Chatwoot (as her Agent Bot
-    identity) so human agents see the full conversation there too."""
+    """Call Júlia agent, split her reply into WhatsApp-sized bubbles, and
+    send each one — via Chatwoot when possible, direct Meta API otherwise.
+
+    Inbox 7 in Chatwoot is a live WhatsApp Cloud channel using the SAME
+    Meta credentials as this app: posting an "outgoing" message there makes
+    Chatwoot itself deliver it over WhatsApp. Sending via both send_text()
+    AND send_chatwoot_message() for the same chunk double-sends it to the
+    customer — so this is either/or per chunk, never both."""
     from app.agent.engine import julia_reply
     from app.services.whatsapp import send_text
     from app.services.chatwoot_client import find_conversation, send_chatwoot_message
@@ -352,10 +357,12 @@ async def _call_agent_and_reply(phone: str, message: str) -> None:
             conv = await find_conversation(phone)
 
             for i, chunk in enumerate(chunks):
-                await send_text(phone=phone, body=chunk)
+                sent_via_chatwoot = False
                 if conv:
                     account_id, conversation_id = conv
-                    await send_chatwoot_message(account_id, conversation_id, chunk)
+                    sent_via_chatwoot = await send_chatwoot_message(account_id, conversation_id, chunk)
+                if not sent_via_chatwoot:
+                    await send_text(phone=phone, body=chunk)
                 if i < len(chunks) - 1:
                     await asyncio.sleep(1.2)
 
