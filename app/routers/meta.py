@@ -288,6 +288,18 @@ async def _handle_incoming_message(msg: dict, profile_names: dict | None = None)
     # Determine if we need the AI agent to reply
     needs_agent = _should_call_agent(journey_result, button_text)
 
+    # A button click that doesn't need Júlia (e.g. "Não quero mais", a
+    # journey engine action that just advances state) still won't trigger
+    # _call_agent_and_reply below, which is the only other place profiling
+    # runs. Without this, a lead who only ever clicks buttons would get
+    # analyzed exactly once — at purchase time, before any signal existed
+    # — and never again. Trigger here only when the agent path won't run,
+    # so the 24h recency guard in analyze_lead isn't "used up" by a less
+    # informed pass right before the better-informed one (post-reply).
+    if not needs_agent and (button_text or text_body):
+        from app.services.lead_analyzer import analyze_lead_background
+        analyze_lead_background(phone)
+
     if needs_agent and text_body:
         # Debounce: a burst of fragments ("oi" / "tudo bem?" / "eu preciso
         # de...") collapses into one combined reply instead of Júlia
