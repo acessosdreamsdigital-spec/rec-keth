@@ -201,12 +201,14 @@ def _build_analysis_prompt(data: dict) -> str:
         for m in messages[:10]:
             msg_lines.append(f"  - {m.get('template_name','?')} ({m.get('status','?')}) state={m.get('state_at_send','?')}")
 
-    # Conversation
+    # Conversation — LangChain's RedisChatMessageHistory serializes each
+    # message as {"type": "human"|"ai", "data": {"content": "...", ...}},
+    # not a flat {"content": ...} — the text lives inside "data".
     conv_lines = []
     for m in conversation[-10:]:
         if isinstance(m, dict):
-            role = m.get("type") or m.get("role") or "?"
-            text = str(m.get("content") or m.get("data") or "")[:200]
+            role = m.get("type") or "?"
+            text = str((m.get("data") or {}).get("content", ""))[:200]
             conv_lines.append(f"  [{role}] {text}")
 
     return f"""Analise este lead da The Differs Co. e classifique-o.
