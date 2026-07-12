@@ -92,10 +92,15 @@ async def receive_webhook(
             value = change.get("value", {})
             messages = value.get("messages", [])
             statuses = value.get("statuses", [])
+            profile_names = {
+                c.get("wa_id"): (c.get("profile") or {}).get("name", "")
+                for c in value.get("contacts", [])
+                if c.get("wa_id")
+            }
 
             # ── Process incoming messages ──
             for msg in messages:
-                await _handle_incoming_message(msg)
+                await _handle_incoming_message(msg, profile_names)
 
             # ── Forward to Chatwoot (transparent proxy) ──
             await _forward_to_chatwoot(body)
@@ -213,7 +218,7 @@ async def _forward_to_chatwoot(body: bytes) -> None:
         logger.warning(f"Chatwoot forward failed: {exc}")
 
 
-async def _handle_incoming_message(msg: dict) -> None:
+async def _handle_incoming_message(msg: dict, profile_names: dict | None = None) -> None:
     """Extract phone, text, and button from an incoming WhatsApp message.
     Routes to journey engine AND/OR Júlia agent depending on context."""
     from_number = msg.get("from")
@@ -222,6 +227,17 @@ async def _handle_incoming_message(msg: dict) -> None:
 
     phone = normalize_phone(from_number)
     msg_type = msg.get("type", "unknown")
+
+    # Durable record of everyone who has ever messaged us, regardless of
+    # purchase history. contacts/contact_journeys were previously only
+    # created on a Kiwify/Assiny purchase event — someone messaging with no
+    # purchase history had zero permanent record; the Redis conversation
+    # history (see app/agent/engine.py) expires after 7 days.
+    try:
+        from app.services.recovery import upsert_contact
+        await upsert_contact(phone, (profile_names or {}).get(from_number, ""), "")
+    except Exception:
+        logger.exception(f"Error upserting contact for {phone}")
 
     if await _is_human_takeover(phone):
         logger.info(f"Skipping automation for {phone} — handed off to a human agent")

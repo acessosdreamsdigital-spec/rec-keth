@@ -510,9 +510,10 @@ async def _judge_with_gpt(text: str) -> Optional[str]:
     The judge returns a JSON with: route, confidence, reasoning.
     """
     import json
-    import os
 
-    api_key = os.environ.get("OPENAI_API_KEY", "")
+    from app.config import settings
+
+    api_key = settings.openai_api_key
     if not api_key:
         return None
 

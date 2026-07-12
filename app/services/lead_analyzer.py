@@ -128,7 +128,6 @@ async def _collect_lead_data(phone: str) -> dict | None:
     # Fetch from all tables in parallel
     await asyncio.gather(
         fetch(f"contacts?phone=eq.{phone_q}&select=*&limit=1", "contact"),
-        fetch(f"leads?whatsapp=eq.{phone_q}&select=*&limit=1", "lead"),
         fetch(f"contact_journeys?phone=eq.{phone_q}&select=*&limit=1&order=updated_at.desc", "journey"),
         fetch(f"lead_insights?phone=eq.{phone_q}&select=*&limit=1", "insight"),
     )
@@ -165,7 +164,7 @@ async def _collect_lead_data(phone: str) -> dict | None:
     except Exception:
         data["conversation"] = []
 
-    if not data.get("contact") and not data.get("lead") and not data.get("journey"):
+    if not data.get("contact") and not data.get("journey"):
         return None
 
     return data
@@ -174,13 +173,12 @@ async def _collect_lead_data(phone: str) -> dict | None:
 def _build_analysis_prompt(data: dict) -> str:
     """Build a structured prompt for GPT-4.1 Mini to analyze the lead."""
     contact = data.get("contact") or {}
-    lead = data.get("lead") or {}
     journey = data.get("journey") or {}
     purchases = data.get("purchases") or {}
     messages = data.get("messages") or {}
     conversation = data.get("conversation") or []
 
-    name = contact.get("full_name") or lead.get("nome") or journey.get("full_name") or "Desconhecido"
+    name = contact.get("full_name") or journey.get("full_name") or "Desconhecido"
     products_bought = journey.get("purchased_products") or []
     tags = journey.get("tags") or []
     state = journey.get("current_state") or "?"

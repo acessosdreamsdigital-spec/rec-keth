@@ -161,15 +161,11 @@ def verificar_cliente(whatsapp: str) -> str:
     phone = normalize_phone(whatsapp)
     phone_q = quote(phone, safe="")
 
-    # 1. Check leads table
-    leads = _supa(f"leads?whatsapp=eq.{phone_q}&select=*&limit=1")
-    lead = leads[0] if isinstance(leads, list) and leads else {}
-
-    # 2. Check contacts
+    # 1. Check contacts
     contacts = _supa(f"contacts?phone=eq.{phone_q}&select=*&limit=1")
     contact = contacts[0] if isinstance(contacts, list) and contacts else {}
 
-    # 3. Check journey
+    # 2. Check journey
     journeys = _supa(
         f"contact_journeys?phone=eq.{phone_q}"
         f"&status=in.(active,paused)&select=current_state,current_stage,tags,"
@@ -177,7 +173,7 @@ def verificar_cliente(whatsapp: str) -> str:
     )
     journey = journeys[0] if isinstance(journeys, list) and journeys else {}
 
-    # 4. Check recovery sessions (converted = comprou)
+    # 3. Check recovery sessions (converted = comprou)
     sessions = _supa(
         f"recovery_sessions?select=product_name,status,created_at&contact_id=eq."
         f"{contact.get('id', '00000000-0000-0000-0000-000000000000')}"
@@ -193,12 +189,7 @@ def verificar_cliente(whatsapp: str) -> str:
                 seen.add(pn)
 
     # Build context
-    nome = (
-        lead.get("nome")
-        or contact.get("full_name")
-        or journey.get("full_name")
-        or "Cliente"
-    )
+    nome = contact.get("full_name") or journey.get("full_name") or "Cliente"
 
     parts = [f"👤 Nome: {nome}"]
 
@@ -230,10 +221,10 @@ def verificar_cliente(whatsapp: str) -> str:
         parts.append(f"📅 Dia na jornada: D+{journey.get('day_offset', 0)}")
         parts.append(f"✉️ Mensagens enviadas: {journey.get('messages_sent', 0)}")
 
-    if lead.get("last_interaction"):
-        parts.append(f"🕐 Última interação: {lead['last_interaction']}")
+    if contact.get("updated_at"):
+        parts.append(f"🕐 Última interação: {contact['updated_at']}")
 
-    # 5. Check lead_insights
+    # 4. Check lead_insights
     insights = _supa(f"lead_insights?phone=eq.{phone_q}&select=*&limit=1")
     insight = insights[0] if isinstance(insights, list) and insights else {}
     if insight:

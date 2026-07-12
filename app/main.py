@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.database import get_supabase
-from app.routers import admin, agent, assiny, auth, chatwoot, dashboard, kiwify, meta
+from app.routers import admin, assiny, auth, chatwoot, dashboard, kiwify, meta
 from app.services.meta_analytics import sync_costs
 from app.services.scheduler import run_cost_sync, run_scheduler
 from app.utils.auth import verify_api_key, verify_jwt
@@ -126,7 +126,6 @@ app.include_router(chatwoot.router)  # Chatwoot forwards messages here
 
 # ── Protected routes (API key required) ──
 app.include_router(admin.router, dependencies=[Depends(verify_api_key)])
-app.include_router(agent.router, dependencies=[Depends(verify_api_key)])
 
 # ── Auth (login page + token endpoint, no auth required) ──
 app.include_router(auth.router)
