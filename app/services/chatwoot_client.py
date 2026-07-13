@@ -21,8 +21,14 @@ logger = logging.getLogger(__name__)
 
 
 async def find_conversation(phone: str) -> tuple[str, str] | None:
-    """Look up the most recent Chatwoot conversation for a phone number.
-    Returns (account_id, conversation_id) or None if not found."""
+    """Look up the most recent Chatwoot conversation for a phone number,
+    restricted to this agent's inbox (settings.chatwoot_inbox_id).
+
+    The Chatwoot account also hosts other inboxes on different WABAs (e.g.
+    "Amanda - Keth"). A contact search by phone is account-wide, so without
+    this filter a phone number that also exists in another inbox could send
+    Júlia's reply into the wrong conversation. Returns (account_id,
+    conversation_id) or None if no conversation exists in THIS inbox."""
     if not settings.chatwoot_api_url or not settings.chatwoot_account_id or not settings.chatwoot_api_token:
         return None
 
@@ -60,9 +66,13 @@ async def find_conversation(phone: str) -> tuple[str, str] | None:
             if resp2.status_code >= 400:
                 return None
             conversations = resp2.json().get("payload", [])
-            if not conversations:
+            inbox_conversations = [
+                c for c in conversations
+                if str(c.get("inbox_id")) == str(settings.chatwoot_inbox_id)
+            ]
+            if not inbox_conversations:
                 return None
-            conversation_id = conversations[0]["id"]
+            conversation_id = inbox_conversations[0]["id"]
             return str(account_id), str(conversation_id)
     except Exception:
         logger.exception(f"Chatwoot conversation lookup failed for {phone}")

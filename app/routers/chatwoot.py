@@ -13,6 +13,11 @@ messages a real human agent types into the Chatwoot UI:
 - sender_type == "User"     → a real human agent replying in the Chatwoot UI.
   This is the only case we act on.
 
+The Chatwoot account also hosts other inboxes on different WABAs/numbers
+(e.g. "Amanda - Keth"). This webhook fires for the whole account, so events
+are scoped to settings.chatwoot_inbox_id — a human reply in another inbox
+must never pause a Júlia ("Recuperação e Up") journey.
+
 When a human agent replies, the journey is permanently marked as handed off
 (status="suporte"). That status no longer matches the status="active" checks
 used everywhere else (journey engine, scheduler, agent routing), so nothing
@@ -27,6 +32,7 @@ from datetime import datetime as dt, timezone as tz
 
 from fastapi import APIRouter, HTTPException, Request
 
+from app.config import settings
 from app.database import get_supabase
 from app.utils.phone import normalize_phone
 
@@ -56,6 +62,10 @@ async def chatwoot_webhook(request: Request):
         contact = event.get("contact") or {}
         conversation = event.get("conversation") or {}
         sender = event.get("sender") or {}
+
+        inbox_id = (event.get("inbox") or {}).get("id") or conversation.get("inbox_id")
+        if str(inbox_id) != str(settings.chatwoot_inbox_id):
+            continue  # event from another inbox (e.g. "Amanda - Keth") — not ours
 
         phone_raw = (
             contact.get("phone_number")

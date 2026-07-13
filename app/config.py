@@ -33,6 +33,13 @@ class Settings(BaseSettings):
     chatwoot_api_token: str = ""
     chatwoot_account_id: str = ""
 
+    # Chatwoot inbox that belongs to THIS agent (Júlia / "Recuperação e Up").
+    # The same Chatwoot account also holds other inboxes on different WABAs
+    # (e.g. "Amanda - Keth") that this app must never touch — contacts/
+    # conversation lookups and the human-takeover webhook are both scoped to
+    # this inbox_id so a shared phone number or contact never crosses over.
+    chatwoot_inbox_id: str = "7"
+
     # Chatwoot Agent Bot — Júlia posts her replies using this token (not a
     # human agent's) so Chatwoot tags them sender_type=AgentBot. That's how
     # we tell her own messages apart from a real human agent replying in the
