@@ -258,7 +258,7 @@ document.getElementById('jst').innerHTML='<option value="">Estados</option>'+Obj
 async function loadJourney(){
 buildJFilters();
 const q=jFilters();
-await Promise.all([loadJKpi(q),loadJKanban(q),loadJAlerts(),loadJFunnel(q),loadJProd(q),loadJEstagio(),jLeads()]);
+await Promise.all([loadJKpi(q),loadJKanban(q),loadJAlerts(q),loadJFunnel(q),loadJProd(q),loadJEstagio(),jLeads()]);
 }
 
 async function loadJKpi(q){
@@ -302,8 +302,8 @@ const cols=[
 document.getElementById('j-kanban').innerHTML=cols.map(c=>`<div class="kanban-col glass" style="background:${c.bg};cursor:pointer" onclick="jState='${c.n}';jLeads()"><span class="material-symbols-outlined" style="font-size:24px;color:${c.c}">${c.icon}</span><div class="kanban-n" style="color:${c.c}">${c.v}</div><div class="kanban-l" style="color:${c.c}">${c.l} <span class="tip" data-tip="${c.tip}">?</span></div></div>`).join('');
 }
 
-async function loadJAlerts(){
-const rows=await F('/dashboard/journey/leads?limit=500');
+async function loadJAlerts(q){
+const rows=await F('/dashboard/journey/leads?'+q+'&limit=1000');
 const all=rows?rows.data||[]:[];
 const now=new Date();
 let noResp=0,hotStuck=0;
