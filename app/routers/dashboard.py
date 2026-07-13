@@ -414,11 +414,16 @@ async def get_journey_leads(
     temperatura: Optional[str] = Query(default=None),
     ticket: Optional[str] = Query(default=None),
     page: int = Query(default=1, ge=1),
-    limit: int = Query(default=20, le=100),
+    limit: int = Query(default=20, le=1000),
 ):
     """
     Paginated leads — contact_journeys enriched with lead_insights by phone.
     Supports search (full_name / phone) and filters (state, temperatura, ticket).
+
+    limit caps at 1000 (not the usual 100) because the dashboard's Kanban/KPI/
+    alert cards fetch the full lead set in one page (limit=500/1000) to
+    aggregate client-side — the dataset here is small (contact_journeys),
+    unlike /sessions.
     """
     db = await get_supabase()
 
