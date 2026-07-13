@@ -102,6 +102,12 @@ def _default_start() -> date:
     return _today_sp()
 
 
+def _default_journey_start() -> date:
+    # Journey views show the live pipeline/current state of all leads, not
+    # "leads created today" — default to no lower bound instead of today.
+    return date(2020, 1, 1)
+
+
 async def _fetch_all(table, columns, sd, ed, platform, product, extra=None):
     """
     Fetch ALL matching rows, paginating past PostgREST's 1000-row cap.
@@ -364,7 +370,7 @@ async def get_journey_stats(
     entry_product: Optional[str] = Query(default=None),
 ):
     """Journey KPI cards — status distribution and aggregate metrics."""
-    sd = start_date or _default_start()
+    sd = start_date or _default_journey_start()
     ed = end_date or _today_sp()
 
     try:
@@ -416,7 +422,7 @@ async def get_journey_leads(
     """
     db = await get_supabase()
 
-    sd = start_date or _default_start()
+    sd = start_date or _default_journey_start()
     ed = end_date or _today_sp()
     offset = (page - 1) * limit
 
@@ -662,7 +668,7 @@ async def get_journey_daily(
     entry_product: Optional[str] = Query(default=None),
 ):
     """Journeys created + messages sent per day for the timeline chart."""
-    sd = start_date or _default_start()
+    sd = start_date or _default_journey_start()
     ed = end_date or _today_sp()
 
     try:
@@ -696,7 +702,7 @@ async def get_journey_products(
     Product distribution — counts journeys by entry_product AND
     aggregates distinct products across purchased_products arrays.
     """
-    sd = start_date or _default_start()
+    sd = start_date or _default_journey_start()
     ed = end_date or _today_sp()
 
     try:

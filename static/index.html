@@ -243,14 +243,15 @@ charts.cost=new Chart(document.getElementById('chCost').getContext('2d'),{type:'
 }
 
 // ═══════════ JOURNEY ═══════════
-let jStart=today(),jEnd=today(),jState='',jTemp='',jTick='';
+const JOURNEY_START='2020-01-01';
+let jStart=JOURNEY_START,jEnd=today(),jState='',jTemp='',jTick='';
 
 function jFilters(){return`start_date=${jStart}&end_date=${jEnd}`}
 function buildJFilters(){
 document.getElementById('j-filters').innerHTML=`
 <input type="date" value="${jStart}" onchange="jStart=this.value"> até <input type="date" value="${jEnd}" onchange="jEnd=this.value">
 <button class="btn btn-p" onclick="jp=1;loadJourney()">Aplicar</button>
-<button class="btn btn-g" onclick="jStart=today();jEnd=today();jp=1;buildJFilters();loadJourney()">Limpar</button>`;
+<button class="btn btn-g" onclick="jStart=JOURNEY_START;jEnd=today();jp=1;buildJFilters();loadJourney()">Limpar</button>`;
 document.getElementById('jst').innerHTML='<option value="">Estados</option>'+Object.entries(SL).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
 }
 
