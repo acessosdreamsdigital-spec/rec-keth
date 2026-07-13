@@ -47,7 +47,6 @@ td{padding:10px 14px;font-size:13px;border-bottom:1px solid #f1f5f9}
 .kanban-col:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
 .kanban-n{font-size:32px;font-weight:900}.kanban-l{font-size:11px;font-weight:700;margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%}
-.alert-card{border-left:3px solid;padding:12px 16px;border-radius:0 12px 12px 0;font-size:13px}
 .spinner{width:40px;height:40px;border:3px solid #e2e8f0;border-top-color:#0056D2;border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
@@ -97,8 +96,6 @@ td{padding:10px 14px;font-size:13px;border-bottom:1px solid #f1f5f9}
 
 <h5 style="margin-bottom:12px">Pipeline de Jornada <span class="tip" data-tip="Cada coluna representa uma etapa da jornada do aluno. O número mostra quantos alunos estão naquela etapa agora. Clique em uma coluna para filtrar a tabela abaixo.">?</span></h5>
 <div class="kanban" id="j-kanban" style="margin-bottom:24px"></div>
-
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px" id="j-alerts"></div>
 
 <div style="display:grid;grid-template-columns:5fr 7fr;gap:16px;margin-bottom:24px">
 <div class="glass" style="padding:24px"><h5 style="margin-bottom:12px">Funil da Jornada <span class="tip" data-tip="Volume de alunos em cada etapa principal da jornada. Mostra onde os alunos estão concentrados e a taxa de progressão entre etapas.">?</span></h5><div style="height:200px"><canvas id="chJfun"></canvas></div></div>
@@ -258,7 +255,7 @@ document.getElementById('jst').innerHTML='<option value="">Estados</option>'+Obj
 async function loadJourney(){
 buildJFilters();
 const q=jFilters();
-await Promise.all([loadJKpi(q),loadJKanban(q),loadJAlerts(q),loadJFunnel(q),loadJProd(q),loadJEstagio(),jLeads()]);
+await Promise.all([loadJKpi(q),loadJKanban(q),loadJFunnel(q),loadJProd(q),loadJEstagio(),jLeads()]);
 }
 
 async function loadJKpi(q){
@@ -300,21 +297,6 @@ const cols=[
 {n:'opted_out',l:'Opt-out',c:'#ef4444',bg:'#fef2f2',v:sts.opted_out,icon:'block',tip:'Alunos que pediram para parar de receber mensagens ou foram para o suporte.'},
 ];
 document.getElementById('j-kanban').innerHTML=cols.map(c=>`<div class="kanban-col glass" style="background:${c.bg};cursor:pointer" onclick="jState='${c.n}';jLeads()"><span class="material-symbols-outlined" style="font-size:24px;color:${c.c}">${c.icon}</span><div class="kanban-n" style="color:${c.c}">${c.v}</div><div class="kanban-l" style="color:${c.c}">${c.l} <span class="tip" data-tip="${c.tip}">?</span></div></div>`).join('');
-}
-
-async function loadJAlerts(q){
-const rows=await F('/dashboard/journey/leads?'+q+'&limit=1000');
-const all=rows?rows.data||[]:[];
-const now=new Date();
-let noResp=0,hotStuck=0;
-all.forEach(l=>{
-const lr=l.last_response_at;if(lr){const d=new Date(lr);if((now-d)/(1000*3600*24)>7)noResp++}
-if(l.temperatura==='quente'&&l.status==='paused')hotStuck++;
-});
-document.getElementById('j-alerts').innerHTML=`
-<div class="glass alert-card" style="border-left-color:#f59e0b"><strong>⚠️ ${noResp} leads</strong><br><span style="font-size:12px;color:#64748b">Sem resposta há +7 dias. Considere acionar manualmente.</span></div>
-<div class="glass alert-card" style="border-left-color:#ef4444"><strong>🔥 ${hotStuck} leads quentes parados</strong><br><span style="font-size:12px;color:#64748b">Quentes mas com jornada pausada. Podem precisar de atenção humana.</span></div>
-<div class="glass alert-card" style="border-left-color:#7c3aed"><strong>📊 Leads analisados</strong><br><span style="font-size:12px;color:#64748b">Perfis atualizados automaticamente após cada conversa com a Júlia.</span></div>`;
 }
 
 async function loadJFunnel(q){
